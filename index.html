@@ -401,75 +401,6 @@
         </div>
     </div>
 
-    <!-- Users Modal (Admin) -->
-    <div id="usersModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
-        <div class="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
-            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-[#A88A45]/20 rounded-xl flex items-center justify-center">
-                        <i data-lucide="users-cog" class="w-5 h-5 text-[#A88A45]"></i>
-                    </div>
-                    <h3 class="font-black text-xl tracking-wide">إدارة المستخدمين</h3>
-                </div>
-                <button onclick="document.getElementById('usersModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto">
-                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3 text-blue-800">
-                    <i data-lucide="info" class="w-5 h-5 mt-0.5 shrink-0"></i>
-                    <p class="text-sm">قائمة بجميع المستخدمين المسجلين بالنظام. بصفتك مدير (Admin)، يمكنك تعديل كلمات المرور أو حذف الحسابات.</p>
-                </div>
-
-                <!-- Add New User Form - Admin Only -->
-                <div id="addUserFormSection" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
-                    <div class="flex items-center gap-2 text-slate-700 font-black text-base mb-4 border-b border-slate-200 pb-3">
-                        <i data-lucide="user-plus" class="w-5 h-5 text-[#A88A45]"></i>
-                        إضافة مستخدم جديد
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="input-group">
-                            <label class="required">البريد الإلكتروني</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
-                                </div>
-                                <input type="email" id="newUserEmail" placeholder="user@example.com" dir="ltr" class="text-left pl-10">
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label class="required">كلمة المرور</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
-                                </div>
-                                <input type="password" id="newUserPassword" placeholder="••••••••" dir="ltr" class="text-left pl-10">
-                            </div>
-                        </div>
-                    </div>
-                    <button onclick="addNewUser()" class="bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#6E1418]/20 transition-all duration-200 flex items-center gap-2 text-sm active:scale-95">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i>
-                        إنشاء الحساب
-                    </button>
-                </div>
-
-                <div class="table-responsive rounded-xl border border-slate-200">
-                    <table class="users-table">
-                        <thead class="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th>البريد الإلكتروني</th>
-                                <th>كلمة المرور</th>
-                                <th>تاريخ التسجيل</th>
-                                <th>إجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- All Bookings List Modal -->
     <div id="bookingsListModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
@@ -728,7 +659,6 @@
     <script>
         // --- Configuration ---
         const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzRq3GItUelYEXn8WUFhMTrJw9lTxbhEKtUIxUWdUCel9GeSbprpHed80no4VZ-ix3d8g/exec';
-        const ADMIN_EMAIL = "salama.m@gmail.com";
         const LOGO_PATH = "./001.png"; 
         const SYNC_INTERVAL = 30000; 
 
@@ -785,19 +715,6 @@
         function init() {
             if(typeof lucide!=="undefined") lucide.createIcons();
             
-            // Ensure Admin Exists
-            const ADMIN_PASS = 'Hamada@1968';
-            const adminIndex = state.users.findIndex(u => u.email === ADMIN_EMAIL);
-            if (adminIndex !== -1) {
-                if (state.users[adminIndex].password !== ADMIN_PASS) {
-                    state.users[adminIndex].password = ADMIN_PASS;
-                    saveUsers();
-                }
-            } else {
-                state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
-                saveUsers();
-            }
-
             // Ensure default auto-login user exists (regular user, not admin)
             const AUTO_USER_EMAIL = 'marwa@gmail.com';
             const AUTO_USER_PASS = '12345';
@@ -1014,8 +931,6 @@
                         const dateTitle = document.getElementById('modalDateTitle').dataset.date;
                         if (dateTitle) showDayDetails(dateTitle);
                     }
-                    const userModal = document.getElementById('usersModal');
-                    if (!userModal.classList.contains('hidden')) renderUsersTable();
                 }
 
                 if (!isSilent) showSync("تمت المزامنة بنجاح ✓");
@@ -1132,8 +1047,15 @@
             
             container.appendChild(toast);
             if(typeof lucide!=="undefined") lucide.createIcons(); // Ensure icons render
-            
-            // تم إزالة وظيفة الإخفاء التلقائي بعد 4 ثوانٍ بناءً على طلبك
+
+            // إخفاء الإشعار تلقائيًا بعد 5 ثوانٍ
+            setTimeout(() => {
+                if (!toast.isConnected) return;
+                toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 400);
+            }, 5000);
         }
 
         function toggleNotificationsModal() {
@@ -1266,110 +1188,6 @@
             document.getElementById('app').style.display = 'none';
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
-        }
-
-        // --- Admin Functions ---
-        async function toggleUsersModal() {
-            if (state.currentUserEmail !== ADMIN_EMAIL) {
-                alert("غير مصرح لك بالدخول!");
-                return;
-            }
-            await loadFromCloud();
-            document.getElementById('usersModal').classList.remove('hidden');
-            renderUsersTable();
-        }
-
-        function renderUsersTable() {
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = state.users.map(user => `
-                <tr class="transition-colors hover:bg-slate-50">
-                    <td class="font-bold text-slate-800" style="direction: ltr;">${user.email}</td>
-                    <td><span class="font-mono text-[#A88A45] bg-[#A88A45]/10 rounded-lg px-3 py-1 font-bold text-xs">${user.password}</span></td>
-                    <td class="text-sm text-slate-500 font-medium">${new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
-                    <td class="flex items-center gap-2 justify-end">
-                        <button onclick="changeUserPassword('${user.email}')" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="تغيير كلمة المرور">
-                            <i data-lucide="key" class="w-4 h-4"></i>
-                        </button>
-                        ${user.email !== ADMIN_EMAIL ? `
-                            <button onclick="deleteUser('${user.email}')" class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="حذف المستخدم">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        ` : '<span class="text-xs font-bold text-white bg-slate-800 px-3 py-1 rounded-full mx-2">أدمن النظام</span>'}
-                    </td>
-                </tr>
-            `).join('');
-            if(typeof lucide!=="undefined") lucide.createIcons();
-        }
-
-        function deleteUser(email) {
-            if (email === ADMIN_EMAIL) return;
-            if(confirm(`هل أنت متأكد من حذف المستخدم ${email}؟ \nلن يتمكن من الدخول مرة أخرى.`)) {
-                state.users = state.users.filter(u => u.email !== email);
-                if (!state.pendingDeletedUsers.includes(email)) {
-                    state.pendingDeletedUsers.push(email);
-                }
-                // ارفع العداد لضمان أولوية هذه العملية في syncToCloud
-                state._opsVersion++;
-                localStorage.setItem('hotel_deleted_users', JSON.stringify(state.pendingDeletedUsers));
-                saveUsers();
-                syncToCloud();
-                renderUsersTable();
-                showToast(`تم حذف المستخدم ${email} بنجاح. جاري المزامنة مع السحابة...`, 'success');
-            }
-        }
-
-        function changeUserPassword(email) {
-            const newPass = prompt(`أدخل كلمة المرور الجديدة للمستخدم ${email}:`);
-            if(newPass && newPass.trim() !== "") {
-                const userIndex = state.users.findIndex(u => u.email === email);
-                if(userIndex !== -1) {
-                    state.users[userIndex].password = newPass.trim();
-                    saveUsers();
-                    syncToCloud();
-                    renderUsersTable();
-                    showToast("تم تحديث كلمة المرور بنجاح.", 'success');
-                }
-            }
-        }
-
-        function addNewUser() {
-            if (state.currentUserEmail !== ADMIN_EMAIL) return;
-
-            const emailInput = document.getElementById('newUserEmail');
-            const passInput  = document.getElementById('newUserPassword');
-            const email    = (emailInput.value || '').trim().toLowerCase();
-            const password = (passInput.value  || '').trim();
-
-            // Validation: missing fields
-            if (!email || !password) {
-                showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور.', 'error');
-                return;
-            }
-
-            // Validation: email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showToast('البريد الإلكتروني غير صحيح. يرجى إدخال بريد صحيح.', 'error');
-                return;
-            }
-
-            // Validation: duplicate email
-            if (state.users.find(u => u.email === email)) {
-                showToast('هذا البريد الإلكتروني مسجل مسبقاً في النظام.', 'error');
-                return;
-            }
-
-            // Create user
-            state.users.push({ email: email, password: password, createdAt: new Date().toISOString() });
-            saveUsers();
-            syncToCloud();
-            renderUsersTable();
-
-            // Clear inputs
-            emailInput.value = '';
-            passInput.value  = '';
-
-            showToast(`تم إنشاء حساب المستخدم (${email}) بنجاح ✓`, 'success');
         }
 
         function toggleBookingsListModal() {
@@ -1566,7 +1384,7 @@
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
-            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
+            if (state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية تعديل هذا الحجز.");
                 return;
             }
@@ -1580,7 +1398,7 @@
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
-            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
+            if (state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية حذف هذا الحجز.");
                 return;
             }
@@ -1749,8 +1567,7 @@
             content.innerHTML = bookings.map(b => {
                 const hall = HALLS.find(h => h.id === b.hallId);
                 const isOwner = b.createdBy === state.currentUserEmail;
-                const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
-                const canControl = isOwner || isAdmin;
+                const canControl = isOwner;
 
                 return `
                     <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-5 shadow-sm border-r-4 ${hall.border} relative overflow-hidden group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -2131,12 +1948,6 @@ ${notesDisplay ? `
                                     </button>
                                 </div>
                             </div>
-
-                            ${state.currentUserEmail === ADMIN_EMAIL ? `
-                                <button onclick="toggleUsersModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shrink-0" title="إدارة المستخدمين">
-                                    <i data-lucide="users" class="w-5 h-5"></i>
-                                </button>
-                            ` : ''}
 
                             <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
                             
