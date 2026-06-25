@@ -1,0 +1,3102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<link rel="icon" type="image/png" href="002.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resta Events Booking</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* --- الألوان المطلوبة --- */
+        :root {
+            --brand-red: #6E1418;
+            --brand-red-hover: #5a1013;
+            --brand-gold: #A88A45;
+            --brand-gold-hover: #8f753a;
+            --bg-body: #f4f7fb;
+        }
+
+        body { 
+            font-family: 'Noto Sans Arabic', sans-serif; 
+            background-color: var(--bg-body); 
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* تعديلات الألوان العامة */
+        .text-brand-red { color: var(--brand-red) !important; }
+        .bg-brand-red { background-color: var(--brand-red) !important; }
+        .text-brand-gold { color: var(--brand-gold) !important; }
+        .bg-brand-gold { background-color: var(--brand-gold) !important; }
+        .border-brand-gold { border-color: var(--brand-gold) !important; }
+        
+        /* تحسينات الإدخال والتركيز (Focus) */
+        .input-group input, .input-group textarea, .input-group select {
+            width: 100%; 
+            padding: 0.85rem 1rem; 
+            border-radius: 1rem; 
+            border: 1px solid #e2e8f0; 
+            background-color: #f8fafc;
+            outline: none; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+        .input-group input:hover, .input-group textarea:hover, .input-group select:hover {
+            border-color: #cbd5e1;
+        }
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
+            background-color: #ffffff;
+            border-color: var(--brand-gold) !important;
+            box-shadow: 0 0 0 4px rgba(168, 138, 69, 0.15) !important;
+        }
+        .input-group label { 
+            display: block; 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            margin-bottom: 0.5rem; 
+            color: #475569; 
+            transition: color 0.2s;
+        }
+        .input-group:focus-within label { color: var(--brand-red); }
+        .required::after { content: "*"; color: #ef4444; margin-right: 4px; }
+
+        /* Calendar Styles - Modern Grid */
+        .calendar-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header أيام الأسبوع - مرتبط هيكلياً مع grid التقويم */
+        .calendar-header-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            padding: 0 6px;
+            margin-bottom: 6px;
+        }
+
+        .calendar-header-row > div {
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 900;
+            color: #94a3b8;
+            padding: 8px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            /* عرض الخلية ثابت ومحدد */
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr);
+            /* الصفوف بارتفاع ثابت: auto تعني أن كل صف يأخذ نفس الحجم بسبب align-items */
+            grid-auto-rows: 150px;
+            gap: 6px; 
+            padding: 6px;
+            background: #f1f5f9;
+            border-radius: 1.5rem;
+            /* منع التمدد العمودي غير المرغوب */
+            align-items: start;
+        }
+        
+        .day-cell { 
+            /* ارتفاع ثابت لا يتغير بالمحتوى */
+            height: 150px;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease; 
+            position: relative; 
+            border: 1px solid transparent; 
+            background: #ffffff; 
+            border-radius: 1rem;
+            padding: 0.5rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            /* flex column لترتيب المحتوى الداخلي */
+            display: flex;
+            flex-direction: column;
+            /* منع الخلية من التمدد خارج ارتفاعها */
+            min-height: 0;
+        }
+        .day-cell:hover { 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            border-color: #e2e8f0;
+            z-index: 10;
+        }
+        
+        /* Day Cell Today Highlight */
+        .day-cell.today-active {
+            background-color: #fffbf0;
+            border: 2px solid var(--brand-gold);
+            box-shadow: 0 4px 15px rgba(168, 138, 69, 0.15);
+        }
+
+        /* Mobile Scroll */
+        .calendar-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+        .calendar-fixed-width { min-width: 850px; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; border: 2px solid transparent; background-clip: padding-box; }
+
+        /* Booking Tag */
+        .booking-tag { 
+            font-size: 0.7rem; 
+            padding: 3px 7px; 
+            border-radius: 0.5rem; 
+            /* لا تسمح له بالتمدد عمودياً أبداً */
+            flex-shrink: 0;
+            height: 22px;
+            line-height: 16px;
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+            font-weight: 700; 
+            border-right: 4px solid currentColor; 
+            cursor: pointer; 
+            opacity: 0.95; 
+            transition: opacity 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            /* منع النص من كسر الحد */
+            min-width: 0;
+            width: 100%;
+        }
+        .booking-tag > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+        .booking-tag:hover {
+            opacity: 1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .booking-tag.my-booking { 
+            border: 1px solid currentColor; 
+            border-right-width: 5px; 
+            opacity: 1; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+
+        /* حاوية الحجوزات داخل كل يوم */
+        .day-bookings-container {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow: hidden;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* زر "+X more" */
+        .more-bookings-btn {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #94a3b8;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 0.4rem;
+            padding: 2px 6px;
+            cursor: pointer;
+            text-align: center;
+            flex-shrink: 0;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .more-bookings-btn:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        /* Utility Styles */
+        #sync-status { position: fixed; bottom: 24px; left: 24px; z-index: 1000; }
+        .modal-backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); }
+        
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        @keyframes pulseSoft { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } }
+        .animate-pulse-soft { animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+        /* Table Styles (Modals) */
+        .users-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1rem; }
+        .users-table th, .users-table td { padding: 1rem; border-bottom: 1px solid #f1f5f9; text-align: right; }
+        .users-table th { background-color: #f8fafc; color: var(--brand-red); font-weight: 800; white-space: nowrap; font-size: 0.85rem; }
+        .users-table tr:hover td { background-color: #f8fafc; }
+        .users-table th:first-child { border-top-right-radius: 1rem; border-bottom-right-radius: 1rem; }
+        .users-table th:last-child { border-top-left-radius: 1rem; border-bottom-left-radius: 1rem; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Notification Badge */
+        .notification-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background-color: var(--brand-red);
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px rgba(110, 20, 24, 0.2);
+        }
+
+        /* Sync Dropdown */
+        .sync-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0;
+            min-width: 220px;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            z-index: 9999;
+            overflow: hidden;
+            transform-origin: top left;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .sync-dropdown button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: right;
+            background: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #475569;
+        }
+        .sync-dropdown button:hover { background: #f8fafc; color: var(--brand-red); padding-right: 20px; }
+        .sync-dropdown button:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+
+        /* FAB New Booking Button */
+        .fab-new-booking {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--brand-red), #8a1c22);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(110, 20, 24, 0.35);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fab-new-booking:hover { 
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(110, 20, 24, 0.45);
+        }
+        .fab-new-booking:active {
+            transform: translateY(1px) scale(0.95);
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
+            <div class="text-center mb-10 mt-2">
+                <div class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm relative group">
+                    <div class="absolute inset-0 bg-[#A88A45] opacity-0 group-hover:opacity-10 rounded-[1.5rem] transition-opacity duration-300"></div>
+                    <i data-lucide="shield-check" class="w-12 h-12 text-[#6E1418]"></i>
+                </div>
+                <h2 class="text-3xl font-black text-[#6E1418] tracking-tight">مرحباً بك</h2>
+                <p class="text-slate-500 mt-2 text-sm">نظام إدارة حجوزات قاعات رستا</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div class="input-group">
+                    <label>البريد الإلكتروني</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="mail" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="email" id="loginEmail" required class="text-left pl-12" dir="ltr" placeholder="user@example.com">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>كلمة المرور</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
+                        </div>
+                        <input type="password" id="loginPassword" required class="text-left pl-12" dir="ltr" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
+                    <span>تسجيل الدخول</span>
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                </button>
+            </form>
+            <p class="text-xs text-center text-slate-400 mt-8 bg-slate-50 py-3 rounded-xl border border-slate-100">للحصول على حساب جديد، يرجى التواصل مع مدير النظام.</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" style="display: none;">
+        <!-- Content injected by JS -->
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in border border-slate-100">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+                        <i data-lucide="calendar" class="w-6 h-6 text-[#A88A45]"></i>
+                    </div>
+                    <div>
+                        <h3 id="modalDateTitle" class="font-black text-xl tracking-wide">التفاصيل</h3>
+                        <p id="modalHallTitle" class="text-sm text-[#A88A45] opacity-90 font-medium mt-0.5"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="detailsModalActions"></div>
+                    <button onclick="closeDetailsModal()" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="modalContent" class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+                <!-- Bookings Injected Here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Modal (Admin) -->
+    <div id="usersModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-[#A88A45]/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="users-cog" class="w-5 h-5 text-[#A88A45]"></i>
+                    </div>
+                    <h3 class="font-black text-xl tracking-wide">إدارة المستخدمين</h3>
+                </div>
+                <button onclick="document.getElementById('usersModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3 text-blue-800">
+                    <i data-lucide="info" class="w-5 h-5 mt-0.5 shrink-0"></i>
+                    <p class="text-sm">قائمة بجميع المستخدمين المسجلين بالنظام. بصفتك مدير (Admin)، يمكنك تعديل كلمات المرور أو حذف الحسابات.</p>
+                </div>
+
+                <!-- Add New User Form - Admin Only -->
+                <div id="addUserFormSection" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
+                    <div class="flex items-center gap-2 text-slate-700 font-black text-base mb-4 border-b border-slate-200 pb-3">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-[#A88A45]"></i>
+                        إضافة مستخدم جديد
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="input-group">
+                            <label class="required">البريد الإلكتروني</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="email" id="newUserEmail" placeholder="user@example.com" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="required">كلمة المرور</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="password" id="newUserPassword" placeholder="••••••••" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="addNewUser()" class="bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#6E1418]/20 transition-all duration-200 flex items-center gap-2 text-sm active:scale-95">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        إنشاء الحساب
+                    </button>
+                </div>
+
+                <div class="table-responsive rounded-xl border border-slate-200">
+                    <table class="users-table">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th>البريد الإلكتروني</th>
+                                <th>كلمة المرور</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Bookings List Modal -->
+    <div id="bookingsListModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
+                        <i data-lucide="list-todo" class="w-5 h-5 text-[#A88A45]"></i>
+                    </div>
+                    <h3 class="font-black text-xl tracking-wide">قائمة الحجوزات القادمة</h3>
+                </div>
+                <button onclick="toggleBookingsListModal()" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-0 overflow-y-auto flex-1 bg-white">
+                <div class="table-responsive">
+                    <table class="users-table mt-0">
+                        <thead class="bg-slate-50 border-b border-slate-200 shadow-sm sticky top-0 z-10">
+                            <tr>
+                                <th class="text-[#6E1418] py-4">اسم الشركة / الجهة</th>
+                                <th class="text-[#6E1418] py-4">القاعة</th>
+                                <th class="text-[#6E1418] py-4">من تاريخ</th>
+                                <th class="text-[#6E1418] py-4">إلى تاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allBookingsTableBody" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+                <div class="p-4 text-center text-sm font-bold text-slate-400 bg-slate-50 border-t border-slate-200">
+                    <i data-lucide="pointer" class="w-4 h-4 inline-block mr-1"></i> اضغط على الحجز لعرض التفاصيل الكاملة
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications History Modal -->
+    <div id="notificationsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden max-h-[85vh] flex flex-col animate-fade-in border border-slate-100">
+            <div class="p-5 bg-white border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-[#A88A45] border border-amber-100">
+                        <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-black text-xl text-slate-800 tracking-wide">الإشعارات</h3>
+                </div>
+                <button onclick="document.getElementById('notificationsModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-full hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <div id="notificationsList" class="p-0 overflow-y-auto flex-1 bg-slate-50/50">
+                <!-- Notifications injected here -->
+            </div>
+            <div class="p-4 bg-white border-t border-slate-100 text-center">
+                <button onclick="clearNotifications()" class="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors font-bold w-full flex items-center justify-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> مسح سجل الإشعارات
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-[#A88A45]/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="scroll-text" class="w-5 h-5 text-[#A88A45]"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-xl tracking-wide">سجل العمليات</h3>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">جميع العمليات المسجلة مرتبة من الأحدث للأقدم</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('logsModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <!-- Search Bar -->
+            <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                    </div>
+                    <input id="logsSearchInput" type="text" oninput="filterLogs()" placeholder="بحث في السجل (اسم الشركة، نوع العملية، المستخدم...)"
+                        class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm outline-none focus:border-[#A88A45] focus:ring-2 focus:ring-[#A88A45]/20 transition-all font-medium">
+                </div>
+                <div id="logsCountBadge" class="text-xs font-bold text-slate-400 whitespace-nowrap shrink-0 bg-slate-100 px-3 py-2 rounded-xl"></div>
+            </div>
+            <!-- Table -->
+            <div class="overflow-y-auto flex-1">
+                <div class="table-responsive">
+                    <table class="users-table mt-0">
+                        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th class="text-slate-500 py-3 w-10 text-center">#</th>
+                                <th class="text-[#6E1418] py-3">نوع العملية</th>
+                                <th class="text-[#6E1418] py-3">اسم الشركة / الجهة</th>
+                                <th class="text-[#6E1418] py-3">القاعة</th>
+                                <th class="text-[#6E1418] py-3">التوقيت</th>
+                                <th class="text-[#6E1418] py-3">المستخدم (الإيميل)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <tr><td colspan="7" class="text-center py-12 text-slate-400 font-bold">
+                                <div class="flex flex-col items-center gap-3">
+                                    <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
+                                    <span>جاري تحميل السجل...</span>
+                                </div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-3 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400 font-medium shrink-0">
+                البيانات محملة من سجل العمليات في Google Sheets
+            </div>
+        </div>
+    </div>
+
+    <!-- Global New Booking Modal -->
+    <div id="globalBookingModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col animate-fade-in border border-slate-100">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                        <i data-lucide="calendar-plus" class="w-6 h-6 text-[#A88A45]"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-xl tracking-wide" id="globalModalTitle">حجز جديد</h3>
+                        <p class="text-sm text-[#A88A45] font-medium mt-0.5">أدخل تفاصيل الحجز بدقة</p>
+                    </div>
+                </div>
+                <button onclick="toggleGlobalBookingModal()" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 md:p-8 overflow-y-auto flex-1 bg-slate-50/50">
+                <form onsubmit="handleGlobalBookingSubmit(event)" id="globalBookingForm" class="space-y-6">
+                    <!-- Hall Selector -->
+                    <div class="input-group bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <label class="required flex items-center gap-2 mb-3">
+                            <i data-lucide="layout-template" class="w-4 h-4"></i> القاعة المطلوبة
+                        </label>
+                        <select name="hallId" required id="globalHallSelect" class="bg-slate-50 font-bold text-[#6E1418] border-2 border-slate-200">
+                            <option value="">-- يرجى تحديد القاعة --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                        <div class="flex items-center gap-2 text-[#6E1418] font-bold border-b border-slate-100 pb-3">
+                            <i data-lucide="calendar-clock" class="w-5 h-5"></i> الموعد والتوقيت
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="input-group">
+                                <label class="required">التاريخ من</label>
+                                <input type="date" name="dateFrom" required>
+                            </div>
+                            <div class="input-group">
+                                <label class="required">التاريخ إلى</label>
+                                <input type="date" name="dateTo" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="input-group">
+                                <label>الوقت من <span class="text-xs text-slate-400 font-normal">(اختياري)</span></label>
+                                <input type="time" name="timeFrom">
+                            </div>
+                            <div class="input-group">
+                                <label>الوقت إلى <span class="text-xs text-slate-400 font-normal">(اختياري)</span></label>
+                                <input type="time" name="timeTo">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                        <div class="flex items-center gap-2 text-[#6E1418] font-bold border-b border-slate-100 pb-3">
+                            <i data-lucide="briefcase" class="w-5 h-5"></i> بيانات العميل
+                        </div>
+                        <div class="input-group">
+                            <label class="required">اسم الشركة / الجهة / الشخص</label>
+                            <input type="text" name="company" required placeholder="أدخل اسم الجهة الحاجزة بدقة">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="input-group">
+                                <label>رقم الهاتف</label>
+                                <input type="tel" name="phone" placeholder="مثال: 01xxxxxxxxx">
+                            </div>
+                            <div class="input-group">
+                                <label>الموظف المسؤول</label>
+                                <input type="text" name="employee" placeholder="اسم الموظف المتابع">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                        <div class="flex items-center gap-2 text-[#6E1418] font-bold border-b border-slate-100 pb-3">
+                            <i data-lucide="file-text" class="w-5 h-5"></i> تفاصيل إضافية
+                        </div>
+                        <div class="input-group">
+                            <label>ملاحظات إضافية</label>
+                            <textarea name="notes" rows="3" placeholder="أضف أي تفاصيل، تجهيزات خاصة، أو متطلبات..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>رابط مرفق (Google Drive / URL)</label>
+                            <input type="url" name="link" placeholder="https://..." dir="ltr" class="text-left">
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full bg-gradient-to-r from-[#6E1418] to-[#8a1c22] hover:from-[#5a1013] hover:to-[#6E1418] text-white font-black py-4 rounded-2xl shadow-xl shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-3 text-lg">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i>
+                            <span>حفظ بيانات الحجز</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 left-6 z-[9999] flex flex-col gap-3 pointer-events-none md:max-w-sm md:right-auto md:left-8">
+        <!-- Toasts injected here -->
+    </div>
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-fade-in border border-slate-100">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-300"></i>
+                </div>
+                <div>
+                    <h3 class="font-black text-xl tracking-wide">تأكيد إلغاء الحجز</h3>
+                    <p class="text-sm text-white/70 font-medium mt-0.5">اختر نطاق الحذف</p>
+                </div>
+            </div>
+            <div class="p-6">
+                <p id="deleteConfirmMessage" class="text-slate-600 text-sm leading-relaxed mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 font-medium"></p>
+                <div id="deleteConfirmButtons" class="flex flex-col gap-3">
+                    <!-- Buttons injected dynamically -->
+                </div>
+                <button onclick="closeDeleteConfirmModal()" class="mt-3 w-full py-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    تراجع — لا تحذف شيئاً
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Indicator -->
+    <div id="sync-status" class="hidden items-center gap-3 bg-slate-900 text-white px-5 py-3 rounded-full shadow-2xl border border-slate-700 backdrop-blur-md bg-opacity-90">
+        <div id="sync-dot" class="w-3 h-3 bg-[#A88A45] rounded-full animate-pulse-soft"></div>
+        <span id="sync-text" class="text-sm font-bold tracking-wide">جاري المزامنة مع السحابة...</span>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzRq3GItUelYEXn8WUFhMTrJw9lTxbhEKtUIxUWdUCel9GeSbprpHed80no4VZ-ix3d8g/exec';
+        const ADMIN_EMAIL = "salama.m@gmail.com";
+        const LOGO_PATH = "./001.png"; 
+        const SYNC_INTERVAL = 30000; 
+
+        // Colors for JS Injection
+        const COLOR_RED = '#6E1418';
+        const COLOR_GOLD = '#A88A45';
+
+        const HALLS = [
+            { id: 'yacht', name: 'قاعة اليخت', icon: 'ship', color: 'bg-blue-50 text-blue-700', border: 'border-blue-400' },
+            { id: 'italian', name: 'القاعة الإيطالية', icon: 'armchair', color: 'bg-red-50 text-red-700', border: 'border-red-400' },
+            { id: 'greenhouse', name: 'الجرين هاوس', icon: 'flower-2', color: 'bg-green-50 text-green-700', border: 'border-green-400' },
+            { id: 'bar', name: 'البار', icon: 'glass-water', color: 'bg-purple-50 text-purple-700', border: 'border-purple-400' },
+            { id: 'pool', name: 'حمام السباحة', icon: 'waves', color: 'bg-cyan-50 text-cyan-700', border: 'border-cyan-400' },
+        ];
+
+        let state = {
+            currentUserEmail: localStorage.getItem('hotel_app_email') || '',
+            isLoggedIn: !!localStorage.getItem('hotel_app_email'),
+            users: JSON.parse(localStorage.getItem('hotel_users_db')) || [],
+            view: 'dashboard',
+            activeTab: 'calendar',
+            selectedHall: null,
+            bookings: JSON.parse(localStorage.getItem('hotel_bookings_local')) || [],
+            activityLogs: JSON.parse(localStorage.getItem('hotel_logs_local')) || [],
+            pendingDeletions: JSON.parse(localStorage.getItem('hotel_deleted_ids')) || [],
+            pendingDeletedUsers: JSON.parse(localStorage.getItem('hotel_deleted_users')) || [],
+            notifications: JSON.parse(localStorage.getItem('hotel_notifications')) || [], 
+            currentMonth: new Date().getMonth(),
+            currentYear: new Date().getFullYear(),
+            editingBookingId: null,
+            isSyncing: false,
+            // --- Race condition fix ---
+            // يُزاد بمقدار 1 في كل عملية حذف/تعديل قبل أي fetch
+            // الـ syncToCloud يتحقق منه بعد الـ fetch: لو تغيّر = فيه عملية أحدث → يتوقف
+            _opsVersion: 0,
+            // طابور: لو جاء طلب مزامنة وفيه واحدة جارية، ننتظر ثم نُعيد
+            _syncPending: false
+        };
+
+        // --- Core Functions ---
+        window.onload = () => {
+            init();
+            setInterval(autoSync, SYNC_INTERVAL);
+            // Close sync dropdown on outside click
+            document.addEventListener('click', function(e) {
+                const container = document.getElementById('syncDropdownContainer');
+                const dd = document.getElementById('syncDropdown');
+                if (dd && container && !container.contains(e.target)) {
+                    dd.classList.add('hidden');
+                }
+            });
+        };
+
+        function init() {
+            if(typeof lucide!=="undefined") lucide.createIcons();
+            
+            // Ensure Admin Exists
+            const ADMIN_PASS = 'Hamada@1968';
+            const adminIndex = state.users.findIndex(u => u.email === ADMIN_EMAIL);
+            if (adminIndex !== -1) {
+                if (state.users[adminIndex].password !== ADMIN_PASS) {
+                    state.users[adminIndex].password = ADMIN_PASS;
+                    saveUsers();
+                }
+            } else {
+                state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
+                saveUsers();
+            }
+
+            // Ensure default auto-login user exists (regular user, not admin)
+            const AUTO_USER_EMAIL = 'marwa@gmail.com';
+            const AUTO_USER_PASS = '12345';
+            const autoUserIndex = state.users.findIndex(u => u.email === AUTO_USER_EMAIL);
+            if (autoUserIndex !== -1) {
+                if (state.users[autoUserIndex].password !== AUTO_USER_PASS) {
+                    state.users[autoUserIndex].password = AUTO_USER_PASS;
+                    saveUsers();
+                }
+            } else {
+                state.users.push({ email: AUTO_USER_EMAIL, password: AUTO_USER_PASS, createdAt: new Date().toISOString() });
+                saveUsers();
+            }
+
+            // Skip login screen: always auto-login as the default user
+            state.currentUserEmail = AUTO_USER_EMAIL;
+            state.isLoggedIn = true;
+            localStorage.setItem('hotel_app_email', AUTO_USER_EMAIL);
+
+            // Migrate legacy bookings: assign groupId from id prefix if missing
+            let migrated = false;
+            state.bookings.forEach(b => {
+                if (!b.groupId) {
+                    b.groupId = b.id.toString().split('_d')[0];
+                    migrated = true;
+                }
+            });
+            if (migrated) localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
+
+            if (state.isLoggedIn) {
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                render();
+                if(CLOUD_URL) loadFromCloud();
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem('hotel_users_db', JSON.stringify(state.users));
+        }
+
+        function showSync(text = "جاري المزامنة...", isError = false) {
+            const status = document.getElementById('sync-status');
+            const dot = document.getElementById('sync-dot');
+            const label = document.getElementById('sync-text');
+            status.style.display = 'flex';
+            label.innerText = text;
+            dot.className = isError ? "w-3 h-3 bg-red-500 rounded-full" : `w-3 h-3 rounded-full animate-pulse-soft`;
+            dot.style.backgroundColor = isError ? '#ef4444' : COLOR_GOLD;
+            if(!isError) setTimeout(() => status.style.display = 'none', 3000);
+        }
+
+        async function autoSync() {
+            if (!state.isLoggedIn || !CLOUD_URL) return;
+            if (state.isSyncing) {
+                // ضع علامة "في انتظار مزامنة" بدل تجاهل الطلب
+                state._syncPending = true;
+                return;
+            }
+            await syncToCloud(true);
+        }
+
+        async function syncToCloud(isSilent = false) {
+            if (!CLOUD_URL) return;
+
+            // لو في مزامنة جارية، ضع علامة "ينتظر" واخرج
+            if (state.isSyncing) {
+                state._syncPending = true;
+                return;
+            }
+
+            state.isSyncing = true;
+            state._syncPending = false;
+            if (!isSilent) showSync("جاري المزامنة مع السحابة...");
+
+            // سجّل نسخة العمليات الحالية قبل أي fetch
+            const opsVersionAtStart = state._opsVersion;
+
+            try {
+                const dirtyBookings     = state.bookings.filter(b => b._isDirty);
+                const pendingDels       = [...state.pendingDeletions];
+                const pendingDelUsers   = [...state.pendingDeletedUsers];
+                const hasPendingChanges = dirtyBookings.length > 0 || pendingDels.length > 0 || pendingDelUsers.length > 0;
+
+                const readResponse = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
+                if (!readResponse.ok) throw new Error('فشل القراءة: HTTP ' + readResponse.status);
+
+                // *** الفحص الأساسي لحل مشكلة الـ race condition ***
+                // لو تغيّرت نسخة العمليات أثناء الـ fetch (يعني جاء حذف/تعديل جديد)
+                // نوقف هذه الدورة ونبدأ دورة جديدة بالبيانات المحدّثة
+                if (state._opsVersion !== opsVersionAtStart) {
+                    state.isSyncing = false;
+                    state._syncPending = true;
+                    // ابدأ دورة جديدة بعد تأخير قصير
+                    setTimeout(() => syncToCloud(isSilent), 500);
+                    return;
+                }
+
+                const serverData = await readResponse.json();
+                if (serverData.error) throw new Error('خطأ من السيرفر: ' + serverData.error);
+
+                // فحص ثانٍ بعد parse البيانات أيضاً
+                if (state._opsVersion !== opsVersionAtStart) {
+                    state.isSyncing = false;
+                    state._syncPending = true;
+                    setTimeout(() => syncToCloud(isSilent), 500);
+                    return;
+                }
+
+                const serverBookings = serverData.bookings || [];
+                const serverLogs     = serverData.logs     || [];
+                const serverUsers    = serverData.users    || [];
+
+                let finalBookings;
+
+                if (hasPendingChanges) {
+                    const bookingsMap = new Map(serverBookings.map(b => [String(b.id), b]));
+                    dirtyBookings.forEach(b => {
+                        const clean = { ...b };
+                        delete clean._isDirty;
+                        bookingsMap.set(String(b.id), clean);
+                    });
+                    pendingDels.forEach(id => bookingsMap.delete(String(id)));
+                    finalBookings = Array.from(bookingsMap.values());
+
+                    // ── حذف المستخدمين نهائياً من السحابة ──
+                    // نبني قائمة المستخدمين النهائية بحيث:
+                    // 1. نأخذ المستخدمين المحليين (بعد الحذف)
+                    // 2. نضيف أي مستخدم من السحابة غير موجود محلياً وغير محذوف
+                    // 3. لا نُضيف أي مستخدم في قائمة pendingDelUsers نهائياً
+                    const deletedUsersSet = new Set(pendingDelUsers);
+                    const localEmails = new Set(state.users.map(u => u.email));
+                    const usersForCloud = [...state.users];
+                    serverUsers.forEach(su => {
+                        if (!deletedUsersSet.has(su.email) && !localEmails.has(su.email)) {
+                            usersForCloud.push(su);
+                        }
+                    });
+
+                    const payload = JSON.stringify({
+                        action: 'save',
+                        bookings: finalBookings,
+                        logs: mergeLogs(state.activityLogs, serverLogs),
+                        users: usersForCloud
+                    });
+
+                    await fetch(CLOUD_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: payload
+                    });
+
+                    // فحص ثالث بعد POST — لو حصل تغيير أثناء الكتابة، لا تُحدّث state
+                    if (state._opsVersion !== opsVersionAtStart) {
+                        state.isSyncing = false;
+                        state._syncPending = true;
+                        setTimeout(() => syncToCloud(isSilent), 800);
+                        return;
+                    }
+
+                } else {
+                    finalBookings = serverBookings;
+                }
+
+                const localCleanCount = state.bookings.filter(b => !b._isDirty).length;
+                if (finalBookings.length === 0 && localCleanCount > 0 && pendingDels.length === 0) {
+                    throw new Error('السيرفر رجّع بيانات فارغة بشكل غير متوقع — تم إلغاء التحديث للحفاظ على البيانات');
+                }
+
+                const prevIds   = new Set(state.bookings.filter(b => !b._isDirty).map(b => String(b.id)));
+                const newIds    = new Set(finalBookings.map(b => String(b.id)));
+                const pendingDelSet = new Set(pendingDels.map(String));
+
+                finalBookings.forEach(b => {
+                    if (!prevIds.has(String(b.id)) && !dirtyBookings.find(d => String(d.id) === String(b.id))) {
+                        addNotification(`حجز جديد من مستخدم آخر: ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'add', b.startDate);
+                        showToast(`حجز جديد - ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'success', b.startDate);
+                    }
+                });
+                state.bookings.filter(b => !b._isDirty).forEach(b => {
+                    if (!newIds.has(String(b.id)) && !pendingDelSet.has(String(b.id))) {
+                        addNotification(`تم حذف حجز: ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'delete', b.startDate);
+                        showToast(`تم حذف حجز - ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'error');
+                    }
+                });
+
+                const finalLogs  = mergeLogs(state.activityLogs, serverLogs);
+                // ── بناء القائمة النهائية للمستخدمين بعد المزامنة ──
+                // لا نستخدم mergeUsers هنا لأن pendingDeletedUsers سيُصفَّر بعد هذا مباشرة
+                // بدلاً من ذلك نعتمد على state.users المحدّثة (بعد الحذف) كمصدر موثوق
+                const deletedUsersSetFinal = new Set(state.pendingDeletedUsers || []);
+                const localEmailsFinal = new Set(state.users.map(u => u.email));
+                const finalUsers = [...state.users];
+                serverUsers.forEach(su => {
+                    if (!deletedUsersSetFinal.has(su.email) && !localEmailsFinal.has(su.email)) {
+                        finalUsers.push(su);
+                    }
+                });
+
+                state.bookings          = finalBookings;   
+                state.pendingDeletions  = [];
+                state.pendingDeletedUsers = [];
+                state.activityLogs      = finalLogs;
+                state.users             = finalUsers;
+
+                localStorage.setItem('hotel_deleted_ids', JSON.stringify([]));
+                localStorage.setItem('hotel_deleted_users', JSON.stringify([]));
+                saveLocalStateOnly();
+
+                if (!(state.view === 'hall_detail' && state.activeTab === 'form')) {
+                    render();
+                    const modal = document.getElementById('detailsModal');
+                    if (!modal.classList.contains('hidden')) {
+                        const dateTitle = document.getElementById('modalDateTitle').dataset.date;
+                        if (dateTitle) showDayDetails(dateTitle);
+                    }
+                    const userModal = document.getElementById('usersModal');
+                    if (!userModal.classList.contains('hidden')) renderUsersTable();
+                }
+
+                if (!isSilent) showSync("تمت المزامنة بنجاح ✓");
+
+            } catch (e) {
+                console.error("Sync Error:", e);
+                if (!isSilent) showSync("فشل المزامنة: " + e.message, true);
+            }
+
+            state.isSyncing = false;
+            if (!isSilent) setTimeout(() => document.getElementById('sync-status').style.display = 'none', 3000);
+
+            // لو في طلب مزامنة معلّق، شغّله الآن
+            if (state._syncPending) {
+                state._syncPending = false;
+                setTimeout(() => syncToCloud(true), 300);
+            }
+        }
+
+        function mergeLogs(localLogs, serverLogs) {
+            return [...localLogs, ...serverLogs]
+                .filter((v, i, a) => a.findIndex(t => t.time === v.time && t.date === v.date && t.company === v.company) === i)
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 100);
+        }
+
+        function mergeUsers(localUsers, serverUsers) {
+            // نستخدم هذه الدالة فقط في حالات القراءة الصافية (بدون تغييرات معلّقة)
+            // عند وجود pendingDeletedUsers، يتم التعامل معها مباشرة في syncToCloud
+            const deletedSet = new Set(state.pendingDeletedUsers || []);
+            const localEmails = new Set(localUsers.map(u => u.email));
+            const merged = [...localUsers];
+            serverUsers.forEach(su => {
+                // لا تُضف محذوفاً نهائياً، ولا موجوداً مسبقاً
+                if (!deletedSet.has(su.email) && !localEmails.has(su.email)) {
+                    merged.push(su);
+                }
+            });
+            return merged;
+        }
+
+        async function loadFromCloud(isSilent = false) {
+            await syncToCloud(isSilent);
+        }
+
+        function saveLocal() {
+            // ارفع العداد أولاً — يُبطل أي دورة مزامنة جارية كانت بدأت قبل هذه العملية
+            state._opsVersion++;
+            localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
+            localStorage.setItem('hotel_logs_local', JSON.stringify(state.activityLogs));
+            localStorage.setItem('hotel_deleted_ids', JSON.stringify(state.pendingDeletions));
+            syncToCloud();
+        }
+
+        function saveLocalStateOnly() {
+            localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
+            localStorage.setItem('hotel_logs_local', JSON.stringify(state.activityLogs));
+            localStorage.setItem('hotel_users_db', JSON.stringify(state.users));
+            localStorage.setItem('hotel_notifications', JSON.stringify(state.notifications));
+        }
+
+        // --- Notification System ---
+        function addNotification(text, type, bookingDate) {
+            const notif = {
+                id: Date.now() + Math.random(),
+                text: text,
+                type: type, // 'add' or 'delete'
+                time: new Date().toLocaleTimeString('ar-EG'),
+                date: new Date().toLocaleDateString('ar-EG'),
+                bookingDate: bookingDate || null
+            };
+            state.notifications.unshift(notif);
+            if(state.notifications.length > 50) state.notifications.pop();
+            localStorage.setItem('hotel_notifications', JSON.stringify(state.notifications));
+            renderHeader(); // Refresh header to show badge
+        }
+
+        function showToast(message, type, bookingDate) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200';
+            const textClass = type === 'error' ? 'text-red-800' : 'text-emerald-800';
+            const iconBg = type === 'error' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600';
+            const icon = type === 'error' ? 'trash-2' : 'check-circle';
+
+            const clickableStyles = bookingDate
+                ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200'
+                : '';
+            const clickHint = bookingDate
+                ? `<span class="text-xs font-medium opacity-60 mt-0.5 block">اضغط لعرض التفاصيل</span>`
+                : '';
+
+            toast.className = `pointer-events-auto p-4 rounded-2xl border shadow-xl flex items-center gap-4 animate-slide-up ${bgClass} ${clickableStyles}`;
+            toast.innerHTML = `
+                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+                    <i data-lucide="${icon}" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-bold ${textClass}">${message}</p>
+                    ${clickHint}
+                </div>
+                <button onclick="event.stopPropagation(); this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+
+            if (bookingDate) {
+                toast.addEventListener('click', function() {
+                    showDayDetails(bookingDate);
+                    this.remove();
+                });
+            }
+            
+            container.appendChild(toast);
+            if(typeof lucide!=="undefined") lucide.createIcons(); // Ensure icons render
+            
+            // تم إزالة وظيفة الإخفاء التلقائي بعد 4 ثوانٍ بناءً على طلبك
+        }
+
+        function toggleNotificationsModal() {
+            const modal = document.getElementById('notificationsModal');
+            const list = document.getElementById('notificationsList');
+            
+            if(modal.classList.contains('hidden')) {
+                if (state.notifications.length === 0) {
+                    list.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-64 text-slate-400">
+                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                <i data-lucide="bell-off" class="w-8 h-8 text-slate-300"></i>
+                            </div>
+                            <p class="text-sm font-bold">لا توجد إشعارات جديدة</p>
+                            <p class="text-xs mt-1 text-slate-400">سيتم عرض تحديثات النظام هنا</p>
+                        </div>
+                    `;
+                } else {
+                    list.innerHTML = state.notifications.map(n => {
+                        const isClickable = !!n.bookingDate;
+                        const clickableClass = isClickable ? 'cursor-pointer hover:bg-amber-50 active:bg-amber-100' : '';
+                        const clickAttr = isClickable ? `onclick="document.getElementById('notificationsModal').classList.add('hidden'); showDayDetails('${n.bookingDate}')"` : '';
+                        const hint = isClickable ? `<span class="text-[10px] text-[#A88A45] font-bold mt-1 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> اضغط لعرض تفاصيل الحجز</span>` : '';
+                        return `
+                        <div class="p-4 border-b border-slate-100 hover:bg-white transition-colors ${clickableClass}" ${clickAttr}>
+                            <div class="flex items-start gap-4">
+                                <div class="mt-1 w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${n.type === 'delete' ? 'bg-red-500 shadow-red-200' : 'bg-emerald-500 shadow-emerald-200'}"></div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-slate-700 font-bold leading-relaxed">${n.text}</p>
+                                    <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1 font-medium">
+                                        <i data-lucide="clock" class="w-3 h-3"></i> ${n.date} - ${n.time}
+                                    </p>
+                                    ${hint}
+                                </div>
+                                ${isClickable ? `<div class="shrink-0 w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-[#A88A45]"><i data-lucide="chevron-left" class="w-4 h-4"></i></div>` : ''}
+                            </div>
+                        </div>
+                    `}).join('');
+                }
+                if(typeof lucide!=="undefined") lucide.createIcons();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function clearNotifications() {
+            if(confirm("هل أنت متأكد من مسح سجل الإشعارات بالكامل؟")) {
+                state.notifications = [];
+                localStorage.setItem('hotel_notifications', JSON.stringify([]));
+                toggleNotificationsModal(); 
+                renderHeader();
+            }
+        }
+
+        // --- Export to Excel ---
+        function exportToExcel() {
+            const bookings = [...state.bookings].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+            const wsData = [
+                ["الرقم المرجعي", "اسم الشركة/الجهة", "القاعة", "من تاريخ", "إلى تاريخ",
+                 "من وقت", "إلى وقت", "رقم الهاتف", "الموظف المسؤول",
+                 "ملاحظات", "الرابط المرفق", "تم الإنشاء بواسطة", "تاريخ الإنشاء"],
+                ...bookings.map(b => [
+                    b.id        || '',
+                    b.companyName || '',
+                    HALLS.find(h => h.id === b.hallId)?.name || b.hallId || '',
+                    b.startDate || '',
+                    b.endDate   || '',
+                    b.startTime || '',
+                    b.endTime   || '',
+                    b.phone     || '',
+                    b.employee  || '',
+                    (b.notes    || '').replace(/\n/g, ' '),
+                    b.link      || '',
+                    b.createdBy || '',
+                    b.createdAt ? b.createdAt.split('T')[0] : ''
+                ])
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            ws['!cols'] = [
+                {wch:30},{wch:25},{wch:18},{wch:13},{wch:13},
+                {wch:10},{wch:10},{wch:15},{wch:18},
+                {wch:30},{wch:30},{wch:25},{wch:13}
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'الحجوزات');
+            XLSX.writeFile(wb, 'Resta_Bookings_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        }
+
+        // --- Auth Functions ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) return;
+
+            const existingUser = state.users.find(u => u.email === email);
+
+            if (existingUser) {
+                if (existingUser.password === password) {
+                    performLogin(email);
+                } else {
+                    alert('كلمة المرور غير صحيحة!');
+                }
+            } else {
+                alert('هذا البريد الإلكتروني غير مسجل في النظام. يرجى التواصل مع المدير لإنشاء حسابك.');
+            }
+        }
+
+        function performLogin(email) {
+            state.currentUserEmail = email;
+            state.isLoggedIn = true;
+            localStorage.setItem('hotel_app_email', email);
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            render();
+            if (CLOUD_URL) loadFromCloud();
+        }
+
+        function logout() {
+            state.currentUserEmail = '';
+            state.isLoggedIn = false;
+            localStorage.removeItem('hotel_app_email');
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        // --- Admin Functions ---
+        async function toggleUsersModal() {
+            if (state.currentUserEmail !== ADMIN_EMAIL) {
+                alert("غير مصرح لك بالدخول!");
+                return;
+            }
+            await loadFromCloud();
+            document.getElementById('usersModal').classList.remove('hidden');
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = state.users.map(user => `
+                <tr class="transition-colors hover:bg-slate-50">
+                    <td class="font-bold text-slate-800" style="direction: ltr;">${user.email}</td>
+                    <td><span class="font-mono text-[#A88A45] bg-[#A88A45]/10 rounded-lg px-3 py-1 font-bold text-xs">${user.password}</span></td>
+                    <td class="text-sm text-slate-500 font-medium">${new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
+                    <td class="flex items-center gap-2 justify-end">
+                        <button onclick="changeUserPassword('${user.email}')" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="تغيير كلمة المرور">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </button>
+                        ${user.email !== ADMIN_EMAIL ? `
+                            <button onclick="deleteUser('${user.email}')" class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="حذف المستخدم">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        ` : '<span class="text-xs font-bold text-white bg-slate-800 px-3 py-1 rounded-full mx-2">أدمن النظام</span>'}
+                    </td>
+                </tr>
+            `).join('');
+            if(typeof lucide!=="undefined") lucide.createIcons();
+        }
+
+        function deleteUser(email) {
+            if (email === ADMIN_EMAIL) return;
+            if(confirm(`هل أنت متأكد من حذف المستخدم ${email}؟ \nلن يتمكن من الدخول مرة أخرى.`)) {
+                state.users = state.users.filter(u => u.email !== email);
+                if (!state.pendingDeletedUsers.includes(email)) {
+                    state.pendingDeletedUsers.push(email);
+                }
+                // ارفع العداد لضمان أولوية هذه العملية في syncToCloud
+                state._opsVersion++;
+                localStorage.setItem('hotel_deleted_users', JSON.stringify(state.pendingDeletedUsers));
+                saveUsers();
+                syncToCloud();
+                renderUsersTable();
+                showToast(`تم حذف المستخدم ${email} بنجاح. جاري المزامنة مع السحابة...`, 'success');
+            }
+        }
+
+        function changeUserPassword(email) {
+            const newPass = prompt(`أدخل كلمة المرور الجديدة للمستخدم ${email}:`);
+            if(newPass && newPass.trim() !== "") {
+                const userIndex = state.users.findIndex(u => u.email === email);
+                if(userIndex !== -1) {
+                    state.users[userIndex].password = newPass.trim();
+                    saveUsers();
+                    syncToCloud();
+                    renderUsersTable();
+                    showToast("تم تحديث كلمة المرور بنجاح.", 'success');
+                }
+            }
+        }
+
+        function addNewUser() {
+            if (state.currentUserEmail !== ADMIN_EMAIL) return;
+
+            const emailInput = document.getElementById('newUserEmail');
+            const passInput  = document.getElementById('newUserPassword');
+            const email    = (emailInput.value || '').trim().toLowerCase();
+            const password = (passInput.value  || '').trim();
+
+            // Validation: missing fields
+            if (!email || !password) {
+                showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور.', 'error');
+                return;
+            }
+
+            // Validation: email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('البريد الإلكتروني غير صحيح. يرجى إدخال بريد صحيح.', 'error');
+                return;
+            }
+
+            // Validation: duplicate email
+            if (state.users.find(u => u.email === email)) {
+                showToast('هذا البريد الإلكتروني مسجل مسبقاً في النظام.', 'error');
+                return;
+            }
+
+            // Create user
+            state.users.push({ email: email, password: password, createdAt: new Date().toISOString() });
+            saveUsers();
+            syncToCloud();
+            renderUsersTable();
+
+            // Clear inputs
+            emailInput.value = '';
+            passInput.value  = '';
+
+            showToast(`تم إنشاء حساب المستخدم (${email}) بنجاح ✓`, 'success');
+        }
+
+        function toggleBookingsListModal() {
+            const modal = document.getElementById('bookingsListModal');
+            if (modal.classList.contains('hidden')) {
+                const tbody = document.getElementById('allBookingsTableBody');
+                const today = new Date().toISOString().split('T')[0];
+                const sortedBookings = [...state.bookings]
+                    .filter(b => b.startDate >= today)
+                    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+                if (sortedBookings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-16 text-slate-400 font-bold bg-white"><div class="flex flex-col items-center justify-center"><i data-lucide="calendar-x" class="w-12 h-12 mb-3 text-slate-300"></i>لا توجد حجوزات قادمة مسجلة في النظام</div></td></tr>';
+                } else {
+                    tbody.innerHTML = sortedBookings.map(b => {
+                        const hall = HALLS.find(h => h.id === b.hallId) || { name: 'غير معروف', color: 'bg-gray-100 text-gray-500' };
+                        return `
+                            <tr onclick="showDayDetails('${b.startDate}')" class="cursor-pointer hover:bg-slate-50 transition-all border-l-4 border-transparent hover:border-[#A88A45] bg-white group">
+                                <td class="font-bold text-[#6E1418] group-hover:pl-2 transition-all">${b.companyName}</td>
+                                <td><span class="text-xs px-3 py-1.5 rounded-lg font-bold ${hall.color}">${hall.name}</span></td>
+                                <td class="text-slate-600 dir-ltr font-mono text-xs">${b.startDate}</td>
+                                <td class="text-slate-600 dir-ltr font-mono text-xs">${b.endDate}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+                modal.classList.remove('hidden');
+                if(typeof lucide!=="undefined") lucide.createIcons();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function checkConflict(hallId, date, startTime, endTime, ignoreId = null, ignoreGroup = false) {
+            return state.bookings.some(b => {
+                if (ignoreId) {
+                    if (ignoreGroup && (b.groupId === ignoreId || b.id === ignoreId)) return false;
+                    if (!ignoreGroup && b.id === ignoreId) return false;
+                }
+                if (b.hallId !== hallId || b.startDate !== date) return false;
+                const isFullDayNew = !startTime || !endTime;
+                const isFullDayExisting = !b.startTime || !b.endTime;
+                if (isFullDayNew || isFullDayExisting) return true;
+                return (startTime < b.endTime && endTime > b.startTime);
+            });
+        }
+
+        function handleBookingSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const isEditing = !!state.editingBookingId;
+            const bookingData = {
+                hallId: state.selectedHall.id,
+                hallName: state.selectedHall.name,
+                companyName: form.company.value,
+                phone: form.phone.value,
+                employee: form.employee.value,
+                startDate: form.dateFrom.value,
+                endDate: form.dateTo.value,
+                startTime: form.timeFrom.value,
+                endTime: form.timeTo.value,
+                notes: form.notes.value,
+                link: form.link.value,
+                createdBy: isEditing
+                    ? (state.bookings.find(b => b.groupId === state.editingBookingId || b.id === state.editingBookingId)?.createdBy || state.currentUserEmail)
+                    : state.currentUserEmail,
+                createdAt: new Date().toISOString()
+            };
+
+            const start = new Date(bookingData.startDate);
+            const end = new Date(bookingData.endDate);
+
+            if (end < start) {
+                alert("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+                return;
+            }
+
+            // Build new dates list
+            const newDates = [];
+            let cur = new Date(start);
+            while (cur <= end) {
+                newDates.push(cur.toISOString().split('T')[0]);
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            // Conflict check – ignore all days in the group being edited
+            for (const ds of newDates) {
+                if (checkConflict(bookingData.hallId, ds, bookingData.startTime, bookingData.endTime, state.editingBookingId, true)) {
+                    alert('عذراً، يوجد حجز مسبق في نفس التوقيت يوم ' + ds + ' في ' + bookingData.hallName + '.');
+                    return;
+                }
+            }
+
+            const groupId = isEditing
+                ? state.editingBookingId
+                : String(Date.now()) + '_' + Math.random().toString(36).slice(2);
+
+            if (isEditing) {
+                // ── Smart merge ──────────────────────────────────────────────
+                const existingGroupDays = state.bookings.filter(b =>
+                    b.groupId === groupId || b.id === groupId
+                );
+                const existingDates = existingGroupDays.map(b => b.startDate);
+
+                // Remove days no longer in new range
+                const idsToRemove = existingGroupDays
+                    .filter(b => !newDates.includes(b.startDate))
+                    .map(b => b.id);
+                idsToRemove.forEach(did => state.pendingDeletions.push(did));
+                state.bookings = state.bookings.filter(b => !idsToRemove.includes(b.id));
+
+                // Update shared metadata on remaining days
+                state.bookings = state.bookings.map(b => {
+                    if (b.groupId === groupId || b.id === groupId) {
+                        return {
+                            ...b,
+                            hallId: bookingData.hallId,
+                            hallName: bookingData.hallName,
+                            companyName: bookingData.companyName,
+                            phone: bookingData.phone,
+                            employee: bookingData.employee,
+                            startTime: bookingData.startTime,
+                            endTime: bookingData.endTime,
+                            notes: bookingData.notes,
+                            link: bookingData.link,
+                            originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                            _isDirty: true
+                        };
+                    }
+                    return b;
+                });
+
+                // Add new days not previously in the group
+                // Reuse removed IDs when possible to avoid orphan records on the server
+                const datesToAdd = newDates.filter(d => !existingDates.includes(d));
+                const reuseIds = idsToRemove.slice();
+                let dayIndex = existingGroupDays.length;
+                datesToAdd.forEach(ds => {
+                    let newId;
+                    if (reuseIds.length > 0) {
+                        newId = reuseIds.shift();
+                        state.pendingDeletions = state.pendingDeletions.filter(pid => pid !== newId);
+                    } else {
+                        newId = groupId + '_d' + dayIndex;
+                        dayIndex++;
+                    }
+                    state.bookings.push({
+                        ...bookingData,
+                        id: newId,
+                        groupId: groupId,
+                        startDate: ds,
+                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                        _isDirty: true
+                    });
+                });
+            } else {
+                // New booking – create all days
+                newDates.forEach((ds, dayIndex) => {
+                    state.bookings.push({
+                        ...bookingData,
+                        id: groupId + '_d' + dayIndex,
+                        groupId: groupId,
+                        startDate: ds,
+                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                        _isDirty: true
+                    });
+                });
+            }
+
+            const logType = isEditing ? 'تعديل' : 'إضافة';
+            const _fmtD1 = bookingData.startDate ? bookingData.startDate.split('-').reverse().join('/') : '';
+            const logMsg = 'تم ' + logType + ' حجز - ' + bookingData.companyName + ' - بتاريخ ' + _fmtD1;
+
+            addNotification(logMsg, 'add', bookingData.startDate);
+            showToast(logMsg, 'success', bookingData.startDate);
+
+            state.activityLogs.unshift({
+                type:         logType,
+                company:      bookingData.companyName,
+                hallName:     bookingData.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            state.editingBookingId = null;
+            saveLocal();
+            state.activeTab = 'calendar';
+            render();
+        }
+
+        function editBooking(id) {
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
+                alert("عذراً، ليس لديك صلاحية تعديل هذا الحجز.");
+                return;
+            }
+
+            closeDetailsModal();
+            const groupId = booking.groupId || id;
+            openGlobalBookingForEdit(id, groupId);
+        }
+
+        function deleteBooking(id) {
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
+                alert("عذراً، ليس لديك صلاحية حذف هذا الحجز.");
+                return;
+            }
+
+            const groupId = booking.groupId || id;
+            const groupDays = state.bookings.filter(b => b.groupId === groupId || b.id === groupId);
+            const hasMultipleDays = groupDays.length > 1;
+            const fmtDate = d => d ? d.split('-').reverse().join('/') : '';
+
+            const modal = document.getElementById('deleteConfirmModal');
+            const msgEl = document.getElementById('deleteConfirmMessage');
+            const btnsEl = document.getElementById('deleteConfirmButtons');
+
+            if (hasMultipleDays) {
+                msgEl.innerHTML =
+                    'هذا الحجز <strong class="text-[#6E1418]">' + booking.companyName + '</strong> يشمل <strong>' + groupDays.length + ' أيام</strong>.<br>' +
+                    'ماذا تريد أن تحذف؟';
+
+                btnsEl.innerHTML = `
+                    <button onclick="confirmDeleteOneDay('${id}')" class="w-full py-3.5 text-sm font-black text-orange-700 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="calendar-x" class="w-5 h-5"></i>
+                        حذف هذا اليوم فقط (${fmtDate(booking.startDate)})
+                    </button>
+                    <button onclick="confirmDeleteAllDays('${id}', '${groupId}')" class="w-full py-3.5 text-sm font-black text-red-700 bg-red-50 border border-red-200 rounded-xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        حذف الحجز بالكامل (${groupDays.length} أيام)
+                    </button>
+                `;
+            } else {
+                msgEl.innerHTML =
+                    'هل أنت متأكد من حذف حجز <strong class="text-[#6E1418]">' + booking.companyName + '</strong> بتاريخ <strong>' + fmtDate(booking.startDate) + '</strong>؟';
+
+                btnsEl.innerHTML = `
+                    <button onclick="confirmDeleteOneDay('${id}')" class="w-full py-3.5 text-sm font-black text-red-700 bg-red-50 border border-red-200 rounded-xl hover:bg-red-600 hover:text-white hover:border-red-600 transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        نعم، احذف هذا الحجز
+                    </button>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function closeDeleteConfirmModal() {
+            document.getElementById('deleteConfirmModal').classList.add('hidden');
+        }
+
+        function confirmDeleteOneDay(id) {
+            closeDeleteConfirmModal();
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            state.pendingDeletions.push(id);
+            state.bookings = state.bookings.filter(b => b.id !== id);
+
+            const _fmtDel = booking.startDate ? booking.startDate.split('-').reverse().join('/') : '';
+            const logMsg = 'تم حذف يوم من حجز - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
+
+            addNotification(logMsg, 'delete', booking.startDate);
+            showToast(logMsg, 'error');
+
+            state.activityLogs.unshift({
+                type:         'حذف',
+                company:      booking.companyName,
+                hallName:     (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            saveLocal();
+            render();
+
+            const detailsModal = document.getElementById('detailsModal');
+            if (!detailsModal.classList.contains('hidden')) {
+                const dateTitle = document.getElementById('modalDateTitle').dataset.date;
+                const remaining = state.bookings.filter(b => b.startDate === dateTitle && (state.view === 'dashboard' || b.hallId === state.selectedHall?.id));
+                if (remaining.length === 0) {
+                    closeDetailsModal();
+                } else {
+                    showDayDetails(dateTitle);
+                }
+            }
+        }
+
+        function confirmDeleteAllDays(id, groupId) {
+            closeDeleteConfirmModal();
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            const groupDays = state.bookings.filter(b => b.groupId === groupId || b.id === groupId);
+            const toDeleteIds = groupDays.map(b => b.id);
+            toDeleteIds.forEach(did => state.pendingDeletions.push(did));
+            state.bookings = state.bookings.filter(b => b.groupId !== groupId && b.id !== groupId);
+
+            const _fmtDel = booking.startDate ? booking.startDate.split('-').reverse().join('/') : '';
+            const logMsg = 'تم إلغاء الحجز بالكامل - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
+
+            addNotification(logMsg, 'delete', booking.startDate);
+            showToast(logMsg, 'error');
+
+            state.activityLogs.unshift({
+                type:         'حذف',
+                company:      booking.companyName,
+                hallName:     (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            saveLocal();
+            render();
+
+            const detailsModal = document.getElementById('detailsModal');
+            if (!detailsModal.classList.contains('hidden')) {
+                const dateTitle = document.getElementById('modalDateTitle').dataset.date;
+                const remaining = state.bookings.filter(b => b.startDate === dateTitle && (state.view === 'dashboard' || b.hallId === state.selectedHall?.id));
+                if (remaining.length === 0) {
+                    closeDetailsModal();
+                } else {
+                    showDayDetails(dateTitle);
+                }
+            }
+        }
+
+        function showDayDetails(dateStr) {
+            let bookings = state.bookings.filter(b => b.startDate === dateStr);
+            if (state.view !== 'dashboard' && state.selectedHall) {
+                bookings = bookings.filter(b => b.hallId === state.selectedHall.id);
+            }
+            if (bookings.length === 0) return;
+
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('modalContent');
+            const title = document.getElementById('modalDateTitle');
+            const hallTitle = document.getElementById('modalHallTitle');
+
+            // Format date for display
+            const displayDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const prettyDate = new Date(dateStr).toLocaleDateString('ar-EG', displayDateOptions);
+
+            title.innerText = prettyDate;
+            title.dataset.date = dateStr;
+            hallTitle.innerText = state.view === 'dashboard' ? 'سجل حجوزات اليوم لجميع القاعات' : state.selectedHall.name;
+
+            // إضافة زر حجز جديد في رأس نافذة التفاصيل
+            const actionsEl = document.getElementById('detailsModalActions');
+            if (actionsEl) {
+                const fullDayBookedHallIds = state.bookings
+                    .filter(b => b.startDate === dateStr && (!b.startTime || !b.endTime))
+                    .map(b => b.hallId);
+                const availableCount = HALLS.filter(h => !fullDayBookedHallIds.includes(h.id)).length;
+                actionsEl.innerHTML = availableCount > 0 ? `
+                    <button onclick="openNewBookingForDate('${dateStr}')"
+                        class="flex items-center gap-2 bg-white/10 hover:bg-[#A88A45]/30 border border-white/20 rounded-xl px-3 py-2 text-sm font-bold transition-all duration-200"
+                        title="إضافة حجز جديد لهذا اليوم">
+                        <i data-lucide="calendar-plus" class="w-4 h-4 text-[#A88A45]"></i>
+                        <span class="hidden sm:inline text-white">حجز جديد</span>
+                    </button>
+                ` : '';
+            }
+
+            content.innerHTML = bookings.map(b => {
+                const hall = HALLS.find(h => h.id === b.hallId);
+                const isOwner = b.createdBy === state.currentUserEmail;
+                const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
+                const canControl = isOwner || isAdmin;
+
+                return `
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-5 shadow-sm border-r-4 ${hall.border} relative overflow-hidden group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                        <div class="flex justify-between items-start">
+                            <div class="w-full">
+                                <div class="flex items-center justify-between mb-2 w-full">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-black px-3 py-1 rounded-lg ${hall.color}">${hall.name}</span>
+                                        ${isOwner ? '<span class="text-xs font-bold px-3 py-1 rounded-lg bg-[#A88A45]/20 text-[#8f753a] flex items-center gap-1"><i data-lucide="user-check" class="w-3 h-3"></i> حجزي</span>' : ''}
+                                    </div>
+                                </div>
+                                <h4 class="font-black text-xl text-[#6E1418] mt-3 mb-4">${b.companyName}</h4>
+                                <div class="grid grid-cols-2 gap-3 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-bold">${b.startTime || 'يوم كامل'} - ${b.endTime || 'يوم كامل'}</span></div>
+                                    <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="user" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-medium truncate">${b.employee || 'غير محدد'}</span></div>
+                                    <div class="flex items-center gap-2 col-span-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-medium font-mono dir-ltr">${b.phone || 'لا يوجد رقم'}</span></div>
+                                </div>
+                                
+                                ${b.notes ? `
+                                <div class="mt-4 p-3 bg-amber-50/50 rounded-xl text-sm text-amber-900 border border-amber-100/50 flex items-start gap-2">
+                                    <i data-lucide="info" class="w-4 h-4 mt-0.5 text-amber-600 shrink-0"></i>
+                                    <p class="leading-relaxed font-medium">${b.notes}</p>
+                                </div>` : ''}
+                                
+                                <div class="mt-4 flex items-center justify-between flex-wrap gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
+                                            <i data-lucide="at-sign" class="w-3 h-3"></i> بواسطة: ${b.createdBy.split('@')[0]}
+                                        </div>
+                                        ${b.createdAt ? `<div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg"><i data-lucide="calendar-clock" class="w-3 h-3"></i> تاريخ الإنشاء: ${new Date(b.createdAt).toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+                                    </div>
+                                    ${b.link ? `<a href="${b.link}" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> المرفقات</a>` : ''}
+                                    <button onclick="printSingleBooking('${b.id}')" class="inline-flex items-center gap-1 text-xs font-bold text-[#6E1418] hover:text-white hover:bg-[#6E1418] bg-[#6E1418]/5 px-3 py-1.5 rounded-lg transition-colors border border-[#6E1418]/10">
+                                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> طباعة تفاصيل الحجز
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        ${canControl ? `
+                            <div class="mt-5 pt-4 border-t border-slate-100 flex justify-end gap-3">
+                                <button onclick="editBooking('${b.id}')" class="px-5 py-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 shadow-sm">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i> تعديل الحجز
+                                </button>
+                                <button onclick="deleteBooking('${b.id}')" class="px-5 py-2 text-sm font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center gap-2 shadow-sm">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i> إلغاء الحجز
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            if(typeof lucide!=="undefined") lucide.createIcons();
+            modal.classList.remove('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').classList.add('hidden');
+        }
+
+        function printSingleBooking(bookingId) {
+            const b = state.bookings.find(x => x.id == bookingId || x.id === bookingId);
+            if (!b) {
+                showToast('لم يتم العثور على بيانات الحجز', 'error');
+                return;
+            }
+
+            const hall = HALLS.find(h => h.id === b.hallId) || { name: b.hallId || 'غير معروف' };
+
+            // Determine actual range from group (similar logic to upcoming bookings print)
+            let startDate = b.startDate, endDate = b.endDate || b.startDate;
+            if (b.originalRange && b.originalRange.includes(' to ')) {
+                const p = b.originalRange.split(' to ');
+                startDate = p[0]; endDate = p[1];
+            } else {
+                const gKey = b.groupId || b.id.toString().split('_d')[0];
+                const groupDays = state.bookings
+                    .filter(x => (x.groupId === gKey) || (x.id === gKey))
+                    .map(x => x.startDate).sort();
+                if (groupDays.length > 0) {
+                    startDate = groupDays[0];
+                    endDate   = groupDays[groupDays.length - 1];
+                }
+            }
+
+            const fmtDate = d => d ? d.split('-').reverse().join('/') : '-';
+            const displayDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const prettyStart = startDate ? new Date(startDate).toLocaleDateString('ar-EG', displayDateOptions) : '-';
+            const prettyEnd = endDate ? new Date(endDate).toLocaleDateString('ar-EG', displayDateOptions) : '-';
+
+            const dateRow = (startDate !== endDate)
+                ? `${prettyStart} <span style="color:#A88A45; font-weight:900;">←</span> ${prettyEnd}`
+                : prettyStart;
+
+            const timeDisplay = (b.startTime && b.endTime)
+                ? `${b.startTime} – ${b.endTime}`
+                : (b.startTime || 'يوم كامل');
+
+            const printDate = new Date().toLocaleDateString('ar-EG', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            const notesDisplay = (b.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const createdAtDisplay = b.createdAt
+                ? new Date(b.createdAt).toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})
+                : '-';
+
+            const rows = [
+                ['الشركة / الجهة', b.companyName || '-'],
+                ['القاعة', hall.name],
+                ['التاريخ', dateRow],
+                ['الوقت', timeDisplay],
+                ['الموظف المسؤول', b.employee || 'غير محدد'],
+                ['رقم الهاتف', b.phone || 'لا يوجد رقم'],
+                ['تم الإنشاء بواسطة', (b.createdBy || '-').split('@')[0]],
+                ['تاريخ الإنشاء', createdAtDisplay],
+            ];
+
+            if (b.link) {
+                rows.push(['رابط المرفقات', `<a href="${b.link}" target="_blank" style="color:#1d4ed8; font-weight:700;">${b.link}</a>`]);
+            }
+
+            const rowsHtml = rows.map(r => `
+                <tr>
+                    <td class="label">${r[0]}</td>
+                    <td class="value">${r[1]}</td>
+                </tr>
+            `).join('');
+
+            const printHtml = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تفاصيل الحجز – ${(b.companyName || '').replace(/</g,'&lt;')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Noto Sans Arabic', sans-serif;
+        background: #ffffff;
+        color: #1e293b;
+        direction: rtl;
+        padding: 28px 32px;
+        font-size: 14px;
+    }
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding-bottom: 18px;
+        border-bottom: 3px solid #6E1418;
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-box {
+        width: 52px; height: 52px;
+        background: linear-gradient(135deg, #6E1418, #8a1c22);
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 24px; font-weight: 900;
+    }
+    .hotel-name { font-size: 21px; font-weight: 900; color: #6E1418; }
+    .hotel-sub { font-size: 12px; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+    .meta-area { text-align: left; }
+    .print-date-label { font-size: 11px; color: #94a3b8; font-weight: 600; }
+    .print-date-val { font-size: 13px; font-weight: 700; color: #475569; margin-top: 2px; }
+    .doc-title {
+        font-size: 17px; font-weight: 900;
+        color: #334155;
+        margin-bottom: 18px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .doc-title::before {
+        content: '';
+        display: inline-block;
+        width: 5px; height: 22px;
+        background: #A88A45;
+        border-radius: 4px;
+    }
+    .company-banner {
+        background: linear-gradient(135deg, #6E1418, #8a1c22);
+        color: #fff;
+        border-radius: 14px;
+        padding: 18px 22px;
+        margin-bottom: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .company-banner .cb-label { font-size: 11px; opacity: 0.75; font-weight: 700; letter-spacing: 0.4px; }
+    .company-banner .cb-value { font-size: 22px; font-weight: 900; color: #fff; }
+    .company-banner .cb-hall { font-size: 13px; font-weight: 700; color: #A88A45; margin-top: 4px; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    td.label {
+        padding: 12px 16px;
+        font-weight: 800;
+        color: #6E1418;
+        width: 180px;
+        background: #fdf6f2;
+        white-space: nowrap;
+        border-right: 4px solid #A88A45;
+    }
+    td.value {
+        padding: 12px 16px;
+        color: #334155;
+        font-weight: 600;
+    }
+    ${notesDisplay ? `
+    .notes-box {
+        margin-top: 22px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 14px 18px;
+    }
+    .notes-box .nb-title { font-size: 12px; font-weight: 900; color: #92400e; margin-bottom: 6px; }
+    .notes-box .nb-text { font-size: 13.5px; color: #78350f; font-weight: 600; line-height: 1.7; white-space: pre-wrap; }
+    ` : ''}
+    .footer {
+        margin-top: 32px;
+        padding-top: 14px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+    @media print {
+        body { padding: 0; }
+        @page { size: A4 portrait; margin: 14mm 16mm; }
+        .company-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        td.label { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+</style>
+</head>
+<body>
+<div class="page-header">
+    <div class="logo-area">
+        <div class="logo-box">R</div>
+        <div>
+            <div class="hotel-name">رستا بورسعيد</div>
+            <div class="hotel-sub">Resta Port Said Hotel</div>
+        </div>
+    </div>
+    <div class="meta-area">
+        <div class="print-date-label">تاريخ الطباعة</div>
+        <div class="print-date-val">${printDate}</div>
+    </div>
+</div>
+<div class="doc-title">تفاصيل الحجز</div>
+<div class="company-banner">
+    <div class="cb-label">الشركة / الجهة</div>
+    <div class="cb-value">${(b.companyName || '-').replace(/</g,'&lt;')}</div>
+    <div class="cb-hall">${hall.name}</div>
+</div>
+<table>
+    <tbody>${rowsHtml}</tbody>
+</table>
+${notesDisplay ? `
+<div class="notes-box">
+    <div class="nb-title">ملاحظات</div>
+    <div class="nb-text">${notesDisplay}</div>
+</div>
+` : ''}
+<div class="footer">
+    <span>نظام إدارة حجوزات رستا – Resta Events Booking System</span>
+    <span>${printDate}</span>
+</div>
+<script>
+    window.onload = function() {
+        setTimeout(function() { window.print(); }, 600);
+    };
+<\/script>
+</body>
+</html>`;
+
+            const win = window.open('', '_blank', 'width=900,height=750,scrollbars=yes');
+            if (!win) {
+                showToast('يرجى السماح بفتح النوافذ المنبثقة في المتصفح', 'error');
+                return;
+            }
+            win.document.write(printHtml);
+            win.document.close();
+        }
+
+
+        function cancelEdit() {
+            state.editingBookingId = null;
+            state.activeTab = 'calendar';
+            render();
+        }
+
+        function navigate(view) {
+            state.view = 'dashboard';
+            state.selectedHall = null;
+            render();
+        }
+
+        function selectHall(id) {} // Display only
+
+        function changeMonth(delta) {
+            state.currentMonth += delta;
+            if (state.currentMonth > 11) {
+                state.currentMonth = 0;
+                state.currentYear++;
+            } else if (state.currentMonth < 0) {
+                state.currentMonth = 11;
+                state.currentYear--;
+            }
+            render();
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-7xl mx-auto p-4 md:p-8 pb-24 space-y-8 animate-fade-in">
+                    ${renderDashboard()}
+                </main>
+            `;
+            if(typeof lucide!=="undefined") lucide.createIcons();
+        }
+
+        function renderHeader() {
+            return `
+                <header class="glass-panel sticky top-0 z-40 border-b border-slate-200 shadow-sm">
+                    <div class="max-w-7xl mx-auto px-2 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+                        
+
+
+                        <div class="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end">
+                            <!-- زر حجز جديد -->
+                            <button onclick="toggleGlobalBookingModal()" class="fab-new-booking mr-1 sm:mr-4 shrink-0 w-10 h-10 sm:w-[42px] sm:h-[42px]" title="إضافة حجز جديد">
+                                <i data-lucide="plus" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                            </button>
+
+                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-1 shrink-0"></div>
+
+                            <button onclick="toggleNotificationsModal()" class="relative p-2 sm:p-2.5 text-slate-500 hover:text-[#6E1418] hover:bg-slate-100 rounded-xl transition-all shrink-0" title="الإشعارات">
+                                <i data-lucide="bell" class="w-5 h-5"></i>
+                                ${state.notifications.length > 0 ? '<span class="notification-dot animate-pulse"></span>' : ''}
+                            </button>
+                            <button onclick="exportToExcel()" class="p-2 sm:p-2.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shrink-0" title="تصدير (Excel)">
+                                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="printUpcomingBookings()" class="p-2 sm:p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all shrink-0" title="طباعة الحجوزات القادمة">
+                                <i data-lucide="printer" class="w-5 h-5"></i>
+                            </button>
+                            
+                            <!-- زر المزامنة -->
+                            <div class="relative shrink-0" id="syncDropdownContainer">
+                                <button onclick="toggleSyncDropdown(event)" class="p-2 sm:p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all" title="خيارات المزامنة">
+                                    <i data-lucide="refresh-cw" class="w-5 h-5 ${state.isSyncing ? 'animate-spin text-[#A88A45]' : ''}"></i>
+                                </button>
+                                <div id="syncDropdown" class="sync-dropdown hidden border border-slate-100">
+                                    <button onclick="syncToCloud(); toggleSyncDropdown()">
+                                        <span class="w-8 h-8 rounded-lg bg-[#6E1418]/10 flex items-center justify-center shrink-0">
+                                            <i data-lucide="cloud-upload" class="w-4 h-4 text-[#6E1418]"></i>
+                                        </span>
+                                        مزامنة مع السحابة فوراً
+                                    </button>
+                                    <button onclick="exportToIcal(); toggleSyncDropdown()">
+                                        <span class="w-8 h-8 rounded-lg bg-[#A88A45]/10 flex items-center justify-center shrink-0">
+                                            <i data-lucide="calendar-check" class="w-4 h-4 text-[#A88A45]"></i>
+                                        </span>
+                                        تصدير لـ Google Calendar
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${state.currentUserEmail === ADMIN_EMAIL ? `
+                                <button onclick="toggleUsersModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shrink-0" title="إدارة المستخدمين">
+                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                </button>
+                            ` : ''}
+
+                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
+                            
+                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
+                                <span class="hidden sm:inline">خروج</span>
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            `;
+        }
+
+        function renderDashboard() {
+            const totalBookings = state.bookings.length;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayCount = state.bookings.filter(b => b.startDate === todayStr).length;
+            const futureCount = state.bookings.filter(b => b.startDate >= todayStr).length;
+
+            return `
+                <!-- Summary Card -->
+                <div class="bg-white rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row mb-2">
+                    <div class="bg-gradient-to-br from-[#6E1418] to-[#8a1c22] p-6 text-white md:w-1/3 flex flex-col justify-center relative overflow-hidden">
+                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <div class="absolute -left-8 -bottom-8 w-24 h-24 bg-[#A88A45]/30 rounded-full blur-xl"></div>
+                        
+                        <h2 class="text-xl font-black mb-1 relative z-10">نظرة عامة سريعة</h2>
+                        <p class="text-sm text-white/70 mb-6 relative z-10 font-medium">إحصائيات الحجوزات لجميع القاعات</p>
+                        
+                        <div class="grid grid-cols-2 gap-4 relative z-10">
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                                <p class="text-xs text-white/80 font-bold mb-1">إجمالي الحجوزات</p>
+                                <p class="text-2xl font-black text-white">${totalBookings}</p>
+                            </div>
+                            <div class="bg-[#A88A45]/30 backdrop-blur-sm rounded-xl p-4 border border-[#A88A45]/50">
+                                <p class="text-xs text-white/80 font-bold mb-1">حجوزات اليوم</p>
+                                <p class="text-2xl font-black text-white">${todayCount}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-0 overflow-x-auto">
+                        <table class="w-full text-sm text-right">
+                            <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs">
+                                <tr>
+                                    <th class="px-6 py-4">القاعة</th>
+                                    <th class="px-6 py-4 text-center">النسبة من الإجمالي</th>
+                                    <th class="px-6 py-4 text-center">الإجمالي</th>
+                                    <th class="px-6 py-4 text-center">القادمة</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${HALLS.map((hall) => {
+                                    const total  = state.bookings.filter(b => b.hallId === hall.id).length;
+                                    const future = state.bookings.filter(b => b.hallId === hall.id && b.startDate >= todayStr).length;
+                                    const pct    = totalBookings > 0 ? Math.round((total / totalBookings) * 100) : 0;
+                                    return `
+                                        <tr class="hover:bg-slate-50/50 transition-colors">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${hall.color}">
+                                                        <i data-lucide="${hall.icon}" class="w-4 h-4"></i>
+                                                    </span>
+                                                    <span class="font-bold text-slate-700">${hall.name}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center w-1/3">
+                                                <div class="flex items-center gap-3 justify-center">
+                                                    <div class="w-full max-w-[120px] bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
+                                                        <div class="bg-[#6E1418] h-2 rounded-full transition-all duration-1000 ease-out" style="width: ${pct}%"></div>
+                                                    </div>
+                                                    <span class="text-xs font-bold text-slate-400 w-8">${pct}%</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center font-black text-slate-700">${total}</td>
+                                            <td class="px-6 py-4 text-center font-black text-emerald-600">${future}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <button onclick="toggleBookingsListModal()" class="w-full bg-white border border-slate-200 text-slate-700 p-4 rounded-2xl shadow-sm hover:shadow-md hover:border-[#A88A45] hover:text-[#6E1418] transition-all flex items-center justify-center gap-3 font-bold text-lg group">
+                    <i data-lucide="list-video" class="w-6 h-6 text-slate-400 group-hover:text-[#A88A45] transition-colors"></i>
+                    <span>عرض جدول الحجوزات القادمة بالتفصيل</span>
+                    <i data-lucide="arrow-left" class="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 group-hover:-translate-x-2 transition-all"></i>
+                </button>
+
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6 md:p-8 mt-6">
+                    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-[#A88A45]/10 rounded-xl flex items-center justify-center text-[#A88A45]">
+                                <i data-lucide="calendar" class="w-5 h-5"></i>
+                            </div>
+                            <h2 class="text-2xl font-black text-[#6E1418] tracking-tight">التقويم الشهري</h2>
+                        </div>
+                        <div class="flex bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
+                            <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            <span class="px-6 py-2 text-base font-black text-[#6E1418] flex items-center min-w-[140px] justify-center tracking-wide">
+                                ${new Date(state.currentYear, state.currentMonth).toLocaleString('ar-EG', { month: 'long', year: 'numeric' })} (شهر ${state.currentMonth + 1})
+                            </span>
+                            <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>
+                    ${renderCalendar(true)}
+                </div>
+            `;
+        }
+
+        function renderCalendar(isDashboard) {
+            const year = state.currentYear;
+            const month = state.currentMonth;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const paddingDays = (firstDayIndex + 1) % 7;
+            const days = [];
+
+            // MAX_VISIBLE: الحد الأقصى لعدد الحجوزات المعروضة في كل خلية
+            // بناءً على ارتفاع الخلية (150px): header≈32px, كل tag≈25px → (150-32)/25 ≈ 4
+            const MAX_VISIBLE = 4;
+
+            for (let i = 0; i < paddingDays; i++) {
+                days.push('<div class="rounded-xl bg-transparent" style="height:150px;"></div>');
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                let dayBookings = state.bookings.filter(b => b.startDate === dateStr);
+                
+                if (!isDashboard) {
+                    dayBookings = dayBookings.filter(b => b.hallId === state.selectedHall.id);
+                }
+                
+                dayBookings.sort((a, b) => {
+                    if (!a.startTime) return -1;
+                    if (!b.startTime) return 1;
+                    return a.startTime.localeCompare(b.startTime);
+                });
+
+                const totalCount = dayBookings.length;
+                const visibleBookings = dayBookings.slice(0, MAX_VISIBLE);
+                const hiddenCount = totalCount - visibleBookings.length;
+
+                const tagsHtml = visibleBookings.map(b => {
+                    const hall = HALLS.find(h => h.id === b.hallId);
+                    const isMyBooking = b.createdBy === state.currentUserEmail;
+                    return `
+                        <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}" title="${hall.name}: ${b.companyName}">
+                            <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" style="min-width:6px;"></div>
+                            <span>${b.companyName}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                const moreHtml = hiddenCount > 0
+                    ? `<div class="more-bookings-btn" onclick="event.stopPropagation(); showDayDetails('${dateStr}')" title="عرض جميع الحجوزات">+${hiddenCount} المزيد</div>`
+                    : '';
+
+                const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                days.push(`
+                    <div onclick="handleDayClick('${dateStr}')" class="day-cell ${isToday ? 'today-active z-10' : ''} cursor-pointer group">
+                        <div class="flex items-center justify-between mb-1" style="flex-shrink:0;">
+                            <span class="text-sm font-black w-7 h-7 flex items-center justify-center rounded-lg ${isToday ? 'bg-[#6E1418] text-white' : 'text-slate-500 group-hover:bg-slate-100 transition-colors'}">${i}</span>
+                            ${totalCount > 0 ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${totalCount}</span>` : ''}
+                        </div>
+                        <div class="day-bookings-container">
+                            ${tagsHtml}
+                            ${moreHtml}
+                        </div>
+                    </div>
+                `);
+            }
+
+            const weekDays = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+            return `
+                <div class="calendar-scroll-wrapper">
+                    <div class="calendar-fixed-width calendar-wrapper">
+                        <div class="calendar-header-row">
+                            ${weekDays.map(d => `<div>${d}</div>`).join('')}
+                        </div>
+                        <div class="calendar-grid shadow-inner border border-slate-100">
+                            ${days.join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ─── Sync Dropdown ────────────────────────────────────────────────
+        function toggleSyncDropdown(e) {
+            if (e) e.stopPropagation();
+            const dd = document.getElementById('syncDropdown');
+            if (dd) dd.classList.toggle('hidden');
+        }
+
+        // ─── Export to iCal (Google Calendar) ────────────────────────────
+        function exportToIcal() {
+            if (state.bookings.length === 0) {
+                showToast('لا توجد حجوزات لتصديرها', 'error');
+                return;
+            }
+
+            const seen = new Set();
+            const unique = state.bookings.filter(b => {
+                const key = b.groupId || b.id.toString().split('_d')[0];
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            const events = unique.map(b => {
+                const hall = HALLS.find(h => h.id === b.hallId);
+                const summary = `${hall ? hall.name : b.hallId} - ${b.companyName}`;
+
+                let startDateStr = b.startDate;
+                let endDateStr   = b.endDate || b.startDate;
+                if (b.originalRange && b.originalRange.includes(' to ')) {
+                    const parts  = b.originalRange.split(' to ');
+                    startDateStr = parts[0];
+                    endDateStr   = parts[1];
+                }
+
+                const endPlusOne = new Date(endDateStr);
+                endPlusOne.setDate(endPlusOne.getDate() + 1);
+                const endPlusStr = endPlusOne.toISOString().split('T')[0].replace(/-/g,'');
+                const startClean = startDateStr.replace(/-/g,'');
+                const uid = 'RESTA-' + b.id.toString().replace(/[^a-zA-Z0-9]/g,'').slice(0, 20);
+
+                let dtStart, dtEnd;
+                if (b.startTime) {
+                    const st = b.startTime.replace(':','') + '00';
+                    const et = (b.endTime || b.startTime).replace(':','') + '00';
+                    dtStart = `DTSTART;TZID=Africa/Cairo:${startClean}T${st}`;
+                    dtEnd   = `DTEND;TZID=Africa/Cairo:${startClean}T${et}`;
+                } else {
+                    dtStart = `DTSTART;VALUE=DATE:${startClean}`;
+                    dtEnd   = `DTEND;VALUE=DATE:${endPlusStr}`;
+                }
+
+                const descParts = [
+                    b.employee ? 'الموظف: ' + b.employee : '',
+                    b.phone    ? 'هاتف: '    + b.phone    : '',
+                    b.notes    ? 'ملاحظات: ' + b.notes    : '',
+                    'بواسطة: ' + b.createdBy
+                ].filter(Boolean);
+
+                return [
+                    'BEGIN:VEVENT',
+                    'UID:' + uid + '@resta-events',
+                    'DTSTAMP:' + new Date().toISOString().replace(/[-:.]/g,'').slice(0,15) + 'Z',
+                    dtStart,
+                    dtEnd,
+                    'SUMMARY:' + summary.replace(/[\r\n,;\\]/g,' '),
+                    descParts.length ? 'DESCRIPTION:' + descParts.join('\\n') : '',
+                    hall ? 'LOCATION:' + hall.name : '',
+                    'END:VEVENT'
+                ].filter(Boolean).join('\r\n');
+            });
+
+            const ical = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Resta Hotels//Events Booking//AR',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'X-WR-CALNAME:Resta Events - Port Said',
+                'X-WR-TIMEZONE:Africa/Cairo',
+                ...events,
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            const blob = new Blob(['\uFEFF' + ical], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'RestaEvents_' + new Date().toISOString().slice(0,10) + '.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('تم تصدير ' + unique.length + ' حجز! استورد الملف في Google Calendar', 'success');
+        }
+
+        // ─── Calendar Day Click Handler ───────────────────────────────────
+        function handleDayClick(dateStr) {
+            let dayBookings = state.bookings.filter(b => b.startDate === dateStr);
+            if (state.view !== 'dashboard' && state.selectedHall) {
+                dayBookings = dayBookings.filter(b => b.hallId === state.selectedHall.id);
+            }
+            if (dayBookings.length === 0) {
+                openNewBookingForDate(dateStr);
+            } else {
+                showDayDetails(dateStr);
+            }
+        }
+
+        // ─── Open New Booking Modal Pre-filled for a Specific Date ───────
+        function openNewBookingForDate(dateStr) {
+            state.editingBookingId = null;
+
+            // القاعة تُحذف من القائمة فقط إذا كانت محجوزة يوم كامل (بدون توقيت)
+            // أما إذا كانت محجوزة بوقت محدد فتظهر في القائمة ويتم التحقق من التعارض عند الحفظ
+            const fullDayBookedHallIds = state.bookings
+                .filter(b => b.startDate === dateStr && (!b.startTime || !b.endTime))
+                .map(b => b.hallId);
+            const availableHalls = HALLS.filter(h => !fullDayBookedHallIds.includes(h.id));
+
+            if (availableHalls.length === 0) {
+                showToast('جميع القاعات محجوزة بشكل كامل في هذا اليوم', 'error');
+                return;
+            }
+
+            const modal  = document.getElementById('globalBookingModal');
+            const select = document.getElementById('globalHallSelect');
+            const form   = document.getElementById('globalBookingForm');
+
+            // عرض القاعات المتاحة فقط
+            select.innerHTML = '<option value="">-- يرجى تحديد القاعة --</option>' +
+                availableHalls.map(h => '<option value="' + h.id + '">' + h.name + '</option>').join('');
+
+            form.reset();
+            select.value = '';
+            form.querySelector('input[name="dateFrom"]').value = dateStr;
+            form.querySelector('input[name="dateTo"]').value   = dateStr;
+            form.querySelector('button[type="submit"]').innerHTML =
+                '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
+
+            const titleEl = document.getElementById('globalModalTitle');
+            if (titleEl) titleEl.textContent = 'حجز جديد';
+
+            // إغلاق نافذة التفاصيل إن كانت مفتوحة
+            document.getElementById('detailsModal').classList.add('hidden');
+
+            modal.classList.remove('hidden');
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        // ─── Global New Booking Modal ─────────────────────────────────────
+        function openGlobalBookingForEdit(id, groupId) {
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            // Always track the groupId (not the individual day id) for smart-merge edits
+            const resolvedGroupId = groupId || booking.groupId || id;
+            state.editingBookingId = resolvedGroupId;
+
+            const modal = document.getElementById('globalBookingModal');
+            const select = document.getElementById('globalHallSelect');
+            select.innerHTML = '<option value="">-- يرجى تحديد القاعة --</option>' +
+                HALLS.map(h => '<option value="' + h.id + '">' + h.name + '</option>').join('');
+
+            const form = document.getElementById('globalBookingForm');
+            form.reset();
+
+            select.value = booking.hallId;
+
+            // Determine the full group date range to display in the form
+            let startDate = booking.startDate, endDate = booking.endDate || booking.startDate;
+            if (booking.originalRange && booking.originalRange.includes(' to ')) {
+                const p = booking.originalRange.split(' to ');
+                startDate = p[0]; endDate = p[1];
+            } else {
+                // Calculate range from all days in the group
+                const groupDays = state.bookings
+                    .filter(b => b.groupId === resolvedGroupId || b.id === resolvedGroupId)
+                    .map(b => b.startDate)
+                    .sort();
+                if (groupDays.length > 0) {
+                    startDate = groupDays[0];
+                    endDate   = groupDays[groupDays.length - 1];
+                }
+            }
+
+            form.querySelector('input[name="dateFrom"]').value   = startDate;
+            form.querySelector('input[name="dateTo"]').value     = endDate;
+            form.querySelector('input[name="timeFrom"]').value   = booking.startTime  || '';
+            form.querySelector('input[name="timeTo"]').value     = booking.endTime    || '';
+            form.querySelector('input[name="company"]').value    = booking.companyName|| '';
+            form.querySelector('input[name="phone"]').value      = booking.phone      || '';
+            form.querySelector('input[name="employee"]').value   = booking.employee   || '';
+            form.querySelector('textarea[name="notes"]').value   = booking.notes      || '';
+            form.querySelector('input[name="link"]').value       = booking.link       || '';
+
+            form.querySelector('button[type="submit"]').innerHTML =
+                '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ التعديلات المطبقة</span>';
+
+            const titleEl = document.getElementById('globalModalTitle');
+            if (titleEl) titleEl.textContent = 'تعديل الحجز الحالي';
+            modal.classList.remove('hidden');
+            if(typeof lucide!=="undefined") lucide.createIcons();
+        }
+
+        function toggleGlobalBookingModal() {
+            const modal = document.getElementById('globalBookingModal');
+            if (!modal) return;
+
+            if (modal.classList.contains('hidden')) {
+                state.editingBookingId = null;
+                const select = document.getElementById('globalHallSelect');
+                select.innerHTML = '<option value="">-- يرجى تحديد القاعة --</option>' +
+                    HALLS.map(h => '<option value="' + h.id + '">' + h.name + '</option>').join('');
+
+                const today = new Date().toISOString().split('T')[0];
+                const form  = document.getElementById('globalBookingForm');
+                form.reset();
+                select.value = '';
+                form.querySelector('input[name="dateFrom"]').value = today;
+                form.querySelector('input[name="dateTo"]').value   = today;
+                form.querySelector('button[type="submit"]').innerHTML =
+                    '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
+                const titleEl = document.getElementById('globalModalTitle');
+                if (titleEl) titleEl.textContent = 'حجز جديد';
+
+                modal.classList.remove('hidden');
+                if(typeof lucide!=="undefined") lucide.createIcons();
+            } else {
+                state.editingBookingId = null;
+                modal.classList.add('hidden');
+            }
+        }
+
+        function handleGlobalBookingSubmit(e) {
+            e.preventDefault();
+            const form   = e.target;
+            const hallId = form.hallId.value;
+            const hall   = HALLS.find(h => h.id === hallId);
+            if (!hall) { alert('الرجاء اختيار القاعة أولاً'); return; }
+
+            const isEditing = !!state.editingBookingId;
+            const bookingData = {
+                hallId:      hall.id,
+                hallName:    hall.name,
+                companyName: form.company.value,
+                phone:       form.phone.value,
+                employee:    form.employee.value,
+                startDate:   form.dateFrom.value,
+                endDate:     form.dateTo.value,
+                startTime:   form.timeFrom.value,
+                endTime:     form.timeTo.value,
+                notes:       form.notes.value,
+                link:        form.link.value,
+                createdBy:   isEditing
+                    ? (state.bookings.find(b =>
+                        b.groupId === state.editingBookingId || b.id === state.editingBookingId
+                      )?.createdBy || state.currentUserEmail)
+                    : state.currentUserEmail,
+                createdAt:   new Date().toISOString()
+            };
+
+            const start = new Date(bookingData.startDate);
+            const end   = new Date(bookingData.endDate);
+            if (end < start) { alert('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'); return; }
+
+            // Build new dates list
+            const newDates = [];
+            let cur = new Date(start);
+            while (cur <= end) {
+                newDates.push(cur.toISOString().split('T')[0]);
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            // Conflict check – ignore all days in the group being edited
+            for (const ds of newDates) {
+                if (checkConflict(bookingData.hallId, ds, bookingData.startTime, bookingData.endTime, state.editingBookingId, true)) {
+                    alert('عذراً، يوجد حجز مسبق يوم ' + ds + ' في ' + bookingData.hallName + '.');
+                    return;
+                }
+            }
+
+            const groupId = isEditing
+                ? state.editingBookingId
+                : String(Date.now()) + '_' + Math.random().toString(36).slice(2);
+
+            if (isEditing) {
+                // ── Smart merge ──────────────────────────────────────────────
+                // 1. Find all existing days of this group
+                const existingGroupDays = state.bookings.filter(b =>
+                    b.groupId === groupId || b.id === groupId
+                );
+                const existingDates = existingGroupDays.map(b => b.startDate);
+
+                // 2. Remove days that are no longer in the new range
+                const idsToRemove = existingGroupDays
+                    .filter(b => !newDates.includes(b.startDate))
+                    .map(b => b.id);
+                idsToRemove.forEach(did => state.pendingDeletions.push(did));
+                state.bookings = state.bookings.filter(b => !idsToRemove.includes(b.id));
+
+                // 3. Update shared metadata on all remaining group days
+                state.bookings = state.bookings.map(b => {
+                    if (b.groupId === groupId || b.id === groupId) {
+                        return {
+                            ...b,
+                            hallId:        bookingData.hallId,
+                            hallName:      bookingData.hallName,
+                            companyName:   bookingData.companyName,
+                            phone:         bookingData.phone,
+                            employee:      bookingData.employee,
+                            startTime:     bookingData.startTime,
+                            endTime:       bookingData.endTime,
+                            notes:         bookingData.notes,
+                            link:          bookingData.link,
+                            originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                            _isDirty:      true
+                        };
+                    }
+                    return b;
+                });
+
+                // 4. Add new days that didn't exist before
+                // Reuse removed IDs when possible to avoid orphan records on the server
+                const datesToAdd = newDates.filter(d => !existingDates.includes(d));
+                const reuseIds = idsToRemove.slice(); // IDs freed up from step 2
+                let dayIndex = existingGroupDays.length;
+                datesToAdd.forEach(ds => {
+                    let newId;
+                    if (reuseIds.length > 0) {
+                        // Reuse an old ID: remove it from pendingDeletions and update in-place
+                        newId = reuseIds.shift();
+                        state.pendingDeletions = state.pendingDeletions.filter(pid => pid !== newId);
+                    } else {
+                        newId = groupId + '_d' + dayIndex;
+                        dayIndex++;
+                    }
+                    state.bookings.push({
+                        ...bookingData,
+                        id:            newId,
+                        groupId:       groupId,
+                        startDate:     ds,
+                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                        _isDirty:      true
+                    });
+                });
+
+            } else {
+                // ── New booking: create all days ─────────────────────────────
+                newDates.forEach((ds, dayIndex) => {
+                    state.bookings.push({
+                        ...bookingData,
+                        id:            groupId + '_d' + dayIndex,
+                        groupId:       groupId,
+                        startDate:     ds,
+                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
+                        _isDirty:      true
+                    });
+                });
+            }
+
+            const logType = isEditing ? 'تعديل' : 'إضافة';
+            const _fmtD2 = bookingData.startDate ? bookingData.startDate.split('-').reverse().join('/') : '';
+            const logMsg  = 'تم ' + logType + ' حجز - ' + bookingData.companyName + ' - بتاريخ ' + _fmtD2;
+            addNotification(logMsg, 'add', bookingData.startDate);
+            showToast(logMsg, 'success', bookingData.startDate);
+
+            state.activityLogs.unshift({
+                type:         logType,
+                company:      bookingData.companyName,
+                hallName:     bookingData.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            state.editingBookingId = null;
+            saveLocal();
+            toggleGlobalBookingModal();
+            render();
+        }
+
+
+        // ─── Logs Modal ────────────────────────────────────────────────────
+        async function toggleLogsModal() {
+            const modal = document.getElementById('logsModal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                await loadLogsForDisplay();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function loadLogsForDisplay() {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="text-center py-12 text-slate-400 font-bold">
+                    <div class="flex flex-col items-center gap-3">
+                        <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
+                        <span>جاري تحميل السجل من السحابة...</span>
+                    </div>
+                </td></tr>`;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+
+            let allLogs = [];
+            try {
+                if (CLOUD_URL) {
+                    const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const serverLogs = data.logs || [];
+                        // Merge: union of local + server, deduplicated
+                        const merged = [...state.activityLogs];
+                        serverLogs.forEach(sl => {
+                            const exists = merged.some(ll =>
+                                ll.isoTimestamp === sl.isoTimestamp ||
+                                (ll.time === sl.time && ll.date === sl.date && ll.company === sl.company)
+                            );
+                            if (!exists) merged.push(sl);
+                        });
+                        allLogs = merged;
+                    } else {
+                        allLogs = [...state.activityLogs];
+                    }
+                } else {
+                    allLogs = [...state.activityLogs];
+                }
+            } catch (e) {
+                allLogs = [...state.activityLogs];
+            }
+
+            // Sort: newest first — use isoTimestamp when available, otherwise keep insertion order
+            allLogs.sort((a, b) => {
+                const tsA = a.isoTimestamp || '';
+                const tsB = b.isoTimestamp || '';
+                if (tsA && tsB) return tsB.localeCompare(tsA);
+                if (tsA) return -1;
+                if (tsB) return 1;
+                return 0;
+            });
+
+            window._allLogs = allLogs;
+
+            const searchInput = document.getElementById('logsSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            renderLogsTable(allLogs);
+        }
+
+        function renderLogsTable(logs) {
+            const tbody = document.getElementById('logsTableBody');
+            const badge = document.getElementById('logsCountBadge');
+            if (badge) badge.textContent = logs.length + ' سجل';
+
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6" class="text-center py-16 text-slate-400 font-bold">
+                        <div class="flex flex-col items-center gap-3">
+                            <i data-lucide="scroll" class="w-12 h-12 text-slate-300"></i>
+                            <span>لا توجد سجلات مطابقة</span>
+                        </div>
+                    </td></tr>`;
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = logs.map((log, i) => {
+                // نوع العملية — لون وأيقونة
+                const typeColor = log.type === 'حذف'
+                    ? 'bg-red-100 text-red-700 border border-red-200'
+                    : (log.type === 'تعديل'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'bg-emerald-100 text-emerald-700 border border-emerald-200');
+                const typeIcon = log.type === 'حذف' ? 'trash-2'
+                    : (log.type === 'تعديل' ? 'edit-3' : 'plus-circle');
+
+                // Timestamp — حاول استخدام isoTimestamp أولًا
+                let tsDisplay = '';
+                let tsDate = log.date || '';
+                let tsTime = log.time || '';
+                if (log.isoTimestamp) {
+                    try {
+                        const d = new Date(log.isoTimestamp);
+                        tsDate = d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                        tsTime = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    } catch(e) { /* fallback to date/time fields */ }
+                }
+                tsDisplay = tsDate
+                    ? `<div class="font-bold text-slate-700 text-sm">${tsDate}</div>
+                       <div class="text-xs text-slate-400 font-mono mt-0.5">${tsTime}</div>`
+                    : `<span class="text-slate-400">—</span>`;
+
+                // المستخدم — اعرض الإيميل كاملًا
+                const userEmail = log.user || log.createdBy || '—';
+
+                // اسم القاعة
+                const hallDisplay = log.hallName || log.hall || '—';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 group">
+                        <td class="px-3 py-3 text-xs font-bold text-slate-300 text-center w-8 group-hover:text-slate-500">${logs.length - i}</td>
+                        <td class="px-3 py-3">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg ${typeColor} whitespace-nowrap">
+                                <i data-lucide="${typeIcon}" class="w-3 h-3 shrink-0"></i>
+                                ${log.type || '—'}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 font-bold text-[#6E1418] text-sm max-w-[160px]">
+                            <div class="truncate" title="${(log.company || '').replace(/"/g, '&quot;')}">${log.company || '—'}</div>
+                        </td>
+                        <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${hallDisplay}</td>
+                        <td class="px-3 py-3">${tsDisplay}</td>
+                        <td class="px-3 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500 font-black text-xs border border-slate-200">
+                                    ${userEmail !== '—' ? userEmail.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <span class="text-xs font-bold text-slate-600 break-all" style="direction:ltr; max-width:160px;" title="${userEmail}">${userEmail}</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function filterLogs() {
+            const q = (document.getElementById('logsSearchInput').value || '').trim().toLowerCase();
+            if (!window._allLogs) return;
+            const filtered = !q
+                ? window._allLogs
+                : window._allLogs.filter(l =>
+                    (l.company    || '').toLowerCase().includes(q) ||
+                    (l.type       || '').toLowerCase().includes(q) ||
+                    (l.user       || '').toLowerCase().includes(q) ||
+                    (l.createdBy  || '').toLowerCase().includes(q) ||
+                    (l.hallName   || '').toLowerCase().includes(q) ||
+                    (l.hall       || '').toLowerCase().includes(q) ||
+                    (l.date       || '').toLowerCase().includes(q)
+                );
+            renderLogsTable(filtered);
+        }
+
+        // ─── Print Upcoming Bookings ───────────────────────────────────────
+        function printUpcomingBookings() {
+            const today = new Date().toISOString().split('T')[0];
+            const upcoming = [...state.bookings]
+                .filter(b => b.startDate >= today)
+                .sort((a, b) => {
+                    if (a.startDate !== b.startDate) return a.startDate.localeCompare(b.startDate);
+                    return (a.startTime || '').localeCompare(b.startTime || '');
+                });
+
+            if (upcoming.length === 0) {
+                showToast('لا توجد حجوزات قادمة للطباعة', 'error');
+                return;
+            }
+
+            // Deduplicate by groupId — show each booking group once
+            const seen = new Set();
+            const uniqueUpcoming = upcoming.filter(b => {
+                const key = b.groupId || b.id.toString().split('_d')[0];
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            const printDate = new Date().toLocaleDateString('ar-EG', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            const fmtDate = d => d ? d.split('-').reverse().join('/') : '-';
+
+            const rows = uniqueUpcoming.map((b, i) => {
+                const hall = HALLS.find(h => h.id === b.hallId) || { name: b.hallId || 'غير معروف' };
+
+                // Determine actual range from group
+                let startDate = b.startDate, endDate = b.endDate || b.startDate;
+                if (b.originalRange && b.originalRange.includes(' to ')) {
+                    const p = b.originalRange.split(' to ');
+                    startDate = p[0]; endDate = p[1];
+                } else {
+                    const gKey = b.groupId || b.id.toString().split('_d')[0];
+                    const groupDays = state.bookings
+                        .filter(x => (x.groupId === gKey) || (x.id === gKey))
+                        .map(x => x.startDate).sort();
+                    if (groupDays.length > 0) {
+                        startDate = groupDays[0];
+                        endDate   = groupDays[groupDays.length - 1];
+                    }
+                }
+
+                const dateDisplay = startDate !== endDate
+                    ? fmtDate(startDate) + ' ← ' + fmtDate(endDate)
+                    : fmtDate(startDate);
+
+                const timeDisplay = (b.startTime && b.endTime)
+                    ? b.startTime + ' – ' + b.endTime
+                    : (b.startTime || 'يوم كامل');
+
+                const notesDisplay = (b.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const employeeDisplay = b.employee || '-';
+
+                return `
+                    <tr>
+                        <td class="num">${i + 1}</td>
+                        <td class="company">${b.companyName || '-'}</td>
+                        <td class="hall">${hall.name}</td>
+                        <td class="date">${dateDisplay}</td>
+                        <td class="time">${timeDisplay}</td>
+                        <td class="emp">${employeeDisplay}</td>
+                        <td class="notes">${notesDisplay || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const printHtml = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>الحجوزات القادمة – رستا بورسعيد</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Noto Sans Arabic', sans-serif;
+        background: #ffffff;
+        color: #1e293b;
+        direction: rtl;
+        padding: 24px 28px;
+        font-size: 13px;
+    }
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 3px solid #6E1418;
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-box {
+        width: 48px; height: 48px;
+        background: linear-gradient(135deg, #6E1418, #8a1c22);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 22px; font-weight: 900;
+    }
+    .hotel-name { font-size: 20px; font-weight: 900; color: #6E1418; }
+    .hotel-sub { font-size: 12px; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+    .meta-area { text-align: left; }
+    .print-date-label { font-size: 11px; color: #94a3b8; font-weight: 600; }
+    .print-date-val { font-size: 13px; font-weight: 700; color: #475569; margin-top: 2px; }
+    .count-badge {
+        display: inline-block;
+        background: #6E1418; color: white;
+        padding: 5px 16px; border-radius: 20px;
+        font-size: 12px; font-weight: 800;
+        margin-top: 6px;
+    }
+    .section-title {
+        font-size: 15px; font-weight: 900;
+        color: #334155;
+        margin-bottom: 12px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+        content: '';
+        display: inline-block;
+        width: 4px; height: 18px;
+        background: #A88A45;
+        border-radius: 4px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+    }
+    thead { background: #6E1418; color: white; }
+    thead th {
+        padding: 10px 8px;
+        font-weight: 800;
+        font-size: 11.5px;
+        text-align: right;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+    thead th:first-child { border-radius: 0 8px 8px 0; text-align: center; }
+    thead th:last-child  { border-radius: 8px 0 0 8px; }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    tbody tr:hover { background: #fff8f0; }
+    tbody td { padding: 9px 8px; vertical-align: top; }
+    td.num { font-weight: 700; color: #94a3b8; text-align: center; width: 36px; }
+    td.company { font-weight: 900; color: #6E1418; min-width: 120px; }
+    td.hall { font-weight: 700; color: #475569; white-space: nowrap; }
+    td.date { font-family: monospace; color: #334155; white-space: nowrap; font-size: 12px; }
+    td.time { font-family: monospace; color: #475569; white-space: nowrap; font-size: 12px; }
+    td.emp  { color: #64748b; font-size: 12px; }
+    td.notes { color: #64748b; font-size: 11.5px; max-width: 180px; }
+    .footer {
+        margin-top: 20px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+    @media print {
+        body { padding: 0; }
+        @page { size: A4 landscape; margin: 12mm 14mm; }
+        thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .count-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+</style>
+</head>
+<body>
+<div class="page-header">
+    <div class="logo-area">
+        <div class="logo-box">R</div>
+        <div>
+            <div class="hotel-name">رستا بورسعيد</div>
+            <div class="hotel-sub">Resta Port Said Hotel</div>
+        </div>
+    </div>
+    <div class="meta-area">
+        <div class="print-date-label">تاريخ الطباعة</div>
+        <div class="print-date-val">${printDate}</div>
+        <div class="count-badge">${uniqueUpcoming.length} حجز قادم</div>
+    </div>
+</div>
+<div class="section-title">قائمة الحجوزات القادمة</div>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>الشركة / الجهة</th>
+            <th>القاعة</th>
+            <th>التاريخ</th>
+            <th>الوقت</th>
+            <th>الموظف</th>
+            <th>ملاحظات</th>
+        </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+</table>
+<div class="footer">
+    <span>نظام إدارة حجوزات رستا – Resta Events Booking System</span>
+    <span>${printDate}</span>
+</div>
+<script>
+    window.onload = function() {
+        setTimeout(function() { window.print(); }, 600);
+    };
+<\/script>
+</body>
+</html>`;
+
+            const win = window.open('', '_blank', 'width=1050,height=750,scrollbars=yes');
+            if (!win) {
+                showToast('يرجى السماح بفتح النوافذ المنبثقة في المتصفح', 'error');
+                return;
+            }
+            win.document.write(printHtml);
+            win.document.close();
+        }
+
+    </script>
+</body>
+</html>
