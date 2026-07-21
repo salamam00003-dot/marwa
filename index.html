@@ -401,6 +401,75 @@
         </div>
     </div>
 
+    <!-- Users Modal (Admin) -->
+    <div id="usersModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-[#A88A45]/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="users-cog" class="w-5 h-5 text-[#A88A45]"></i>
+                    </div>
+                    <h3 class="font-black text-xl tracking-wide">إدارة المستخدمين</h3>
+                </div>
+                <button onclick="document.getElementById('usersModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3 text-blue-800">
+                    <i data-lucide="info" class="w-5 h-5 mt-0.5 shrink-0"></i>
+                    <p class="text-sm">قائمة بجميع المستخدمين المسجلين بالنظام. بصفتك مدير (Admin)، يمكنك تعديل كلمات المرور أو حذف الحسابات.</p>
+                </div>
+
+                <!-- Add New User Form - Admin Only -->
+                <div id="addUserFormSection" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
+                    <div class="flex items-center gap-2 text-slate-700 font-black text-base mb-4 border-b border-slate-200 pb-3">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-[#A88A45]"></i>
+                        إضافة مستخدم جديد
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="input-group">
+                            <label class="required">البريد الإلكتروني</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="email" id="newUserEmail" placeholder="user@example.com" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="required">كلمة المرور</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="password" id="newUserPassword" placeholder="••••••••" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="addNewUser()" class="bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#6E1418]/20 transition-all duration-200 flex items-center gap-2 text-sm active:scale-95">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        إنشاء الحساب
+                    </button>
+                </div>
+
+                <div class="table-responsive rounded-xl border border-slate-200">
+                    <table class="users-table">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th>البريد الإلكتروني</th>
+                                <th>كلمة المرور</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- All Bookings List Modal -->
     <div id="bookingsListModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
@@ -516,6 +585,70 @@
             </div>
             <div class="p-3 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400 font-medium shrink-0">
                 البيانات محملة من سجل العمليات في Google Sheets
+            </div>
+        </div>
+    </div>
+
+    <!-- Deleted Bookings Modal -->
+    <div id="deletedBookingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
+                        <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-xl tracking-wide">الحجوزات المحذوفة</h3>
+                        <p class="text-xs text-white/70 font-medium mt-0.5">جميع الحجوزات التي تم حذفها، مرتبة من الأحدث للأقدم</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('deletedBookingsModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <!-- Search Bar -->
+            <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                    </div>
+                    <input id="deletedBookingsSearchInput" type="text" oninput="filterDeletedBookings()" placeholder="بحث في الحجوزات المحذوفة (اسم العميل، الهاتف، القاعة، المستخدم...)"
+                        class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm outline-none focus:border-[#A88A45] focus:ring-2 focus:ring-[#A88A45]/20 transition-all font-medium">
+                </div>
+                <button onclick="loadDeletedBookings()" class="p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all shrink-0" title="تحديث">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+                <div id="deletedBookingsCountBadge" class="text-xs font-bold text-slate-400 whitespace-nowrap shrink-0 bg-slate-100 px-3 py-2 rounded-xl"></div>
+            </div>
+            <!-- Table -->
+            <div class="overflow-y-auto flex-1">
+                <div class="table-responsive">
+                    <table class="users-table mt-0">
+                        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th class="text-slate-500 py-3 w-10 text-center">#</th>
+                                <th class="text-[#6E1418] py-3">نوع الحذف</th>
+                                <th class="text-[#6E1418] py-3">اسم العميل</th>
+                                <th class="text-[#6E1418] py-3">الهاتف</th>
+                                <th class="text-[#6E1418] py-3">القاعة</th>
+                                <th class="text-[#6E1418] py-3">تاريخ الحجز</th>
+                                <th class="text-[#6E1418] py-3">وقت الحذف</th>
+                                <th class="text-[#6E1418] py-3">حُذف بواسطة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deletedBookingsTableBody">
+                            <tr><td colspan="8" class="text-center py-12 text-slate-400 font-bold">
+                                <div class="flex flex-col items-center gap-3">
+                                    <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
+                                    <span>جاري تحميل الحجوزات المحذوفة...</span>
+                                </div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-3 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400 font-medium shrink-0">
+                البيانات محملة من شيت الحجوزات المحذوفة المنفصل
             </div>
         </div>
     </div>
@@ -659,6 +792,55 @@
     <script>
         // --- Configuration ---
         const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzRq3GItUelYEXn8WUFhMTrJw9lTxbhEKtUIxUWdUCel9GeSbprpHed80no4VZ-ix3d8g/exec';
+        // رابط سكريبت منفصل لتسجيل كل حجز يتم حذفه في جوجل شيت مستقل عن باقي البيانات
+        // (ضع هنا رابط الـ exec الخاص بالـ Apps Script الجديد بعد نشره - راجع ملف DeleteLog_Code.gs)
+        const DELETE_LOG_URL = 'https://script.google.com/macros/s/AKfycbyzEwhbaRtFW5gTpMxSiin45zx4Ba2P3dftsHPM3iI-IR0A0U218mNF7q_TpJZWUunViQ/exec';
+        const ADMIN_EMAIL = "salama.m@gmail.com";
+
+        // ─── تسجيل الحجوزات المحذوفة على شيت منفصل ────────────────
+        // يرسل تفاصيل كل حجز محذوف إلى سكريبت مستقل (لا يؤثر على المزامنة الأساسية)
+        function logDeletedBookingToCloud(booking, deleteType) {
+            if (!DELETE_LOG_URL || DELETE_LOG_URL.includes('PASTE_YOUR_NEW_DEPLOYMENT_ID_HERE')) return;
+
+            const hallName = (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '';
+
+            const payload = {
+                action: 'logDelete',
+                bookingId:   booking.id,
+                groupId:     booking.groupId || '',
+                deleteType:  deleteType, // 'يوم واحد' أو 'الحجز بالكامل'
+                companyName: booking.companyName || '',
+                phone:       booking.phone || '',
+                hallName:    hallName,
+                startDate:   booking.startDate || '',
+                endDate:     booking.endDate || '',
+                startTime:   booking.startTime || '',
+                endTime:     booking.endTime || '',
+                notes:       booking.notes || '',
+                deletedBy:   state.currentUserEmail || '',
+                deletedAt:   new Date().toISOString()
+            };
+
+            try {
+                fetch(DELETE_LOG_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                }).catch(() => {});
+            } catch (e) {
+                // نتجاهل أي خطأ هنا حتى لا يعطّل عملية الحذف الأساسية
+            }
+        }
+
+        // ─── Default Employee Name Based on Logged-in User ────────────────
+        const DEFAULT_EMPLOYEE_BY_EMAIL = {
+            "salama.m@gmail.com": "محمد عبد السلام",
+            "rihan@gmail.com": "علاء شحاته",
+            "marwa@gmail.com": "Somaya"
+        };
+        function getDefaultEmployeeName() {
+            return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
+        }
         const LOGO_PATH = "./001.png"; 
         const SYNC_INTERVAL = 30000; 
 
@@ -675,8 +857,8 @@
         ];
 
         let state = {
-            currentUserEmail: localStorage.getItem('hotel_app_email') || '',
-            isLoggedIn: !!localStorage.getItem('hotel_app_email'),
+            currentUserEmail: 'marwa@gmail.com',
+            isLoggedIn: true,
             users: JSON.parse(localStorage.getItem('hotel_users_db')) || [],
             view: 'dashboard',
             activeTab: 'calendar',
@@ -715,24 +897,39 @@
         function init() {
             if(typeof lucide!=="undefined") lucide.createIcons();
             
-            // Ensure default auto-login user exists (regular user, not admin)
-            const AUTO_USER_EMAIL = 'marwa@gmail.com';
-            const AUTO_USER_PASS = '12345';
-            const autoUserIndex = state.users.findIndex(u => u.email === AUTO_USER_EMAIL);
-            if (autoUserIndex !== -1) {
-                if (state.users[autoUserIndex].password !== AUTO_USER_PASS) {
-                    state.users[autoUserIndex].password = AUTO_USER_PASS;
+            // Ensure Admin Exists
+            const ADMIN_PASS = 'Hamada@1968';
+            const adminIndex = state.users.findIndex(u => u.email === ADMIN_EMAIL);
+            if (adminIndex !== -1) {
+                if (state.users[adminIndex].password !== ADMIN_PASS) {
+                    state.users[adminIndex].password = ADMIN_PASS;
                     saveUsers();
                 }
             } else {
-                state.users.push({ email: AUTO_USER_EMAIL, password: AUTO_USER_PASS, createdAt: new Date().toISOString() });
+                state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
                 saveUsers();
             }
 
-            // Skip login screen: always auto-login as the default user
-            state.currentUserEmail = AUTO_USER_EMAIL;
-            state.isLoggedIn = true;
-            localStorage.setItem('hotel_app_email', AUTO_USER_EMAIL);
+            // تنظيف لمرة واحدة: حذف جميع الحسابات والإبقاء فقط على الحسابات المسموح بها
+            if (!localStorage.getItem('hotel_users_cleanup_v1')) {
+                const ALLOWED_EMAILS = ['salama.m@gmail.com', 'rihan@gmail.com', 'marwa@gmail.com'];
+                const removedEmails = state.users
+                    .filter(u => !ALLOWED_EMAILS.includes((u.email || '').toLowerCase()))
+                    .map(u => u.email);
+                if (removedEmails.length > 0) {
+                    state.users = state.users.filter(u => ALLOWED_EMAILS.includes((u.email || '').toLowerCase()));
+                    removedEmails.forEach(email => {
+                        if (!state.pendingDeletedUsers.includes(email)) {
+                            state.pendingDeletedUsers.push(email);
+                        }
+                    });
+                    state._opsVersion++;
+                    localStorage.setItem('hotel_deleted_users', JSON.stringify(state.pendingDeletedUsers));
+                    saveUsers();
+                    syncToCloud();
+                }
+                localStorage.setItem('hotel_users_cleanup_v1', '1');
+            }
 
             // Migrate legacy bookings: assign groupId from id prefix if missing
             let migrated = false;
@@ -828,9 +1025,14 @@
                 const serverLogs     = serverData.logs     || [];
                 const serverUsers    = serverData.users    || [];
 
+                // مستخدمون مضافون محليًا وغير موجودين على السحابة بعد (يجب رفعهم)
+                const serverEmailsSet = new Set(serverUsers.map(su => su.email));
+                const hasNewLocalUsers = state.users.some(u => !serverEmailsSet.has(u.email));
+                const shouldPushUsers = hasPendingChanges || hasNewLocalUsers;
+
                 let finalBookings;
 
-                if (hasPendingChanges) {
+                if (shouldPushUsers) {
                     const bookingsMap = new Map(serverBookings.map(b => [String(b.id), b]));
                     dirtyBookings.forEach(b => {
                         const clean = { ...b };
@@ -931,6 +1133,8 @@
                         const dateTitle = document.getElementById('modalDateTitle').dataset.date;
                         if (dateTitle) showDayDetails(dateTitle);
                     }
+                    const userModal = document.getElementById('usersModal');
+                    if (!userModal.classList.contains('hidden')) renderUsersTable();
                 }
 
                 if (!isSilent) showSync("تمت المزامنة بنجاح ✓");
@@ -1047,14 +1251,10 @@
             
             container.appendChild(toast);
             if(typeof lucide!=="undefined") lucide.createIcons(); // Ensure icons render
-
-            // إخفاء الإشعار تلقائيًا بعد 5 ثوانٍ
+            
+            // إخفاء تلقائي بعد 5 ثوانٍ
             setTimeout(() => {
-                if (!toast.isConnected) return;
-                toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px)';
-                setTimeout(() => toast.remove(), 400);
+                if (toast && toast.parentElement) toast.remove();
             }, 5000);
         }
 
@@ -1190,6 +1390,110 @@
             document.getElementById('loginPassword').value = '';
         }
 
+        // --- Admin Functions ---
+        async function toggleUsersModal() {
+            if (state.currentUserEmail !== ADMIN_EMAIL) {
+                alert("غير مصرح لك بالدخول!");
+                return;
+            }
+            await loadFromCloud();
+            document.getElementById('usersModal').classList.remove('hidden');
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = state.users.map(user => `
+                <tr class="transition-colors hover:bg-slate-50">
+                    <td class="font-bold text-slate-800" style="direction: ltr;">${user.email}</td>
+                    <td><span class="font-mono text-[#A88A45] bg-[#A88A45]/10 rounded-lg px-3 py-1 font-bold text-xs">${user.password}</span></td>
+                    <td class="text-sm text-slate-500 font-medium">${new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
+                    <td class="flex items-center gap-2 justify-end">
+                        <button onclick="changeUserPassword('${user.email}')" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="تغيير كلمة المرور">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </button>
+                        ${user.email !== ADMIN_EMAIL ? `
+                            <button onclick="deleteUser('${user.email}')" class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="حذف المستخدم">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        ` : '<span class="text-xs font-bold text-white bg-slate-800 px-3 py-1 rounded-full mx-2">أدمن النظام</span>'}
+                    </td>
+                </tr>
+            `).join('');
+            if(typeof lucide!=="undefined") lucide.createIcons();
+        }
+
+        function deleteUser(email) {
+            if (email === ADMIN_EMAIL) return;
+            if(confirm(`هل أنت متأكد من حذف المستخدم ${email}؟ \nلن يتمكن من الدخول مرة أخرى.`)) {
+                state.users = state.users.filter(u => u.email !== email);
+                if (!state.pendingDeletedUsers.includes(email)) {
+                    state.pendingDeletedUsers.push(email);
+                }
+                // ارفع العداد لضمان أولوية هذه العملية في syncToCloud
+                state._opsVersion++;
+                localStorage.setItem('hotel_deleted_users', JSON.stringify(state.pendingDeletedUsers));
+                saveUsers();
+                syncToCloud();
+                renderUsersTable();
+                showToast(`تم حذف المستخدم ${email} بنجاح. جاري المزامنة مع السحابة...`, 'success');
+            }
+        }
+
+        function changeUserPassword(email) {
+            const newPass = prompt(`أدخل كلمة المرور الجديدة للمستخدم ${email}:`);
+            if(newPass && newPass.trim() !== "") {
+                const userIndex = state.users.findIndex(u => u.email === email);
+                if(userIndex !== -1) {
+                    state.users[userIndex].password = newPass.trim();
+                    saveUsers();
+                    syncToCloud();
+                    renderUsersTable();
+                    showToast("تم تحديث كلمة المرور بنجاح.", 'success');
+                }
+            }
+        }
+
+        function addNewUser() {
+            if (state.currentUserEmail !== ADMIN_EMAIL) return;
+
+            const emailInput = document.getElementById('newUserEmail');
+            const passInput  = document.getElementById('newUserPassword');
+            const email    = (emailInput.value || '').trim().toLowerCase();
+            const password = (passInput.value  || '').trim();
+
+            // Validation: missing fields
+            if (!email || !password) {
+                showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور.', 'error');
+                return;
+            }
+
+            // Validation: email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('البريد الإلكتروني غير صحيح. يرجى إدخال بريد صحيح.', 'error');
+                return;
+            }
+
+            // Validation: duplicate email
+            if (state.users.find(u => u.email === email)) {
+                showToast('هذا البريد الإلكتروني مسجل مسبقاً في النظام.', 'error');
+                return;
+            }
+
+            // Create user
+            state.users.push({ email: email, password: password, createdAt: new Date().toISOString() });
+            saveUsers();
+            syncToCloud();
+            renderUsersTable();
+
+            // Clear inputs
+            emailInput.value = '';
+            passInput.value  = '';
+
+            showToast(`تم إنشاء حساب المستخدم (${email}) بنجاح ✓`, 'success');
+        }
+
         function toggleBookingsListModal() {
             const modal = document.getElementById('bookingsListModal');
             if (modal.classList.contains('hidden')) {
@@ -1244,7 +1548,7 @@
                 hallName: state.selectedHall.name,
                 companyName: form.company.value,
                 phone: form.phone.value,
-                employee: 'Somaya',
+                employee: form.employee.value,
                 startDate: form.dateFrom.value,
                 endDate: form.dateTo.value,
                 startTime: form.timeFrom.value,
@@ -1384,7 +1688,7 @@
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
-            if (state.currentUserEmail !== booking.createdBy) {
+            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية تعديل هذا الحجز.");
                 return;
             }
@@ -1398,7 +1702,7 @@
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
-            if (state.currentUserEmail !== booking.createdBy) {
+            if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية حذف هذا الحجز.");
                 return;
             }
@@ -1455,6 +1759,9 @@
             state.pendingDeletions.push(id);
             state.bookings = state.bookings.filter(b => b.id !== id);
 
+            // تسجيل الحجز المحذوف على جوجل شيت منفصل
+            logDeletedBookingToCloud(booking, 'يوم واحد');
+
             const _fmtDel = booking.startDate ? booking.startDate.split('-').reverse().join('/') : '';
             const logMsg = 'تم حذف يوم من حجز - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
 
@@ -1495,6 +1802,9 @@
             const toDeleteIds = groupDays.map(b => b.id);
             toDeleteIds.forEach(did => state.pendingDeletions.push(did));
             state.bookings = state.bookings.filter(b => b.groupId !== groupId && b.id !== groupId);
+
+            // تسجيل كل يوم من الحجز المحذوف بالكامل على جوجل شيت منفصل
+            groupDays.forEach(gb => logDeletedBookingToCloud(gb, 'الحجز بالكامل'));
 
             const _fmtDel = booking.startDate ? booking.startDate.split('-').reverse().join('/') : '';
             const logMsg = 'تم إلغاء الحجز بالكامل - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
@@ -1567,7 +1877,8 @@
             content.innerHTML = bookings.map(b => {
                 const hall = HALLS.find(h => h.id === b.hallId);
                 const isOwner = b.createdBy === state.currentUserEmail;
-                const canControl = isOwner;
+                const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
+                const canControl = isOwner || isAdmin;
 
                 return `
                     <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-5 shadow-sm border-r-4 ${hall.border} relative overflow-hidden group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -1927,6 +2238,9 @@ ${notesDisplay ? `
                             <button onclick="printUpcomingBookings()" class="p-2 sm:p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all shrink-0" title="طباعة الحجوزات القادمة">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
                             </button>
+                            <button onclick="toggleDeletedBookingsModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0" title="الحجوزات المحذوفة">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
                             
                             <!-- زر المزامنة -->
                             <div class="relative shrink-0" id="syncDropdownContainer">
@@ -1948,6 +2262,12 @@ ${notesDisplay ? `
                                     </button>
                                 </div>
                             </div>
+
+                            ${state.currentUserEmail === ADMIN_EMAIL ? `
+                                <button onclick="toggleUsersModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shrink-0" title="إدارة المستخدمين">
+                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                </button>
+                            ` : ''}
 
                             <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
                             
@@ -2272,6 +2592,7 @@ ${notesDisplay ? `
             select.value = '';
             form.querySelector('input[name="dateFrom"]').value = dateStr;
             form.querySelector('input[name="dateTo"]').value   = dateStr;
+            form.querySelector('input[name="employee"]').value = getDefaultEmployeeName();
             form.querySelector('button[type="submit"]').innerHTML =
                 '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
 
@@ -2356,6 +2677,7 @@ ${notesDisplay ? `
                 select.value = '';
                 form.querySelector('input[name="dateFrom"]').value = today;
                 form.querySelector('input[name="dateTo"]').value   = today;
+                form.querySelector('input[name="employee"]').value = getDefaultEmployeeName();
                 form.querySelector('button[type="submit"]').innerHTML =
                     '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
                 const titleEl = document.getElementById('globalModalTitle');
@@ -2382,7 +2704,7 @@ ${notesDisplay ? `
                 hallName:    hall.name,
                 companyName: form.company.value,
                 phone:       form.phone.value,
-                employee:    'Somaya',
+                employee:    form.employee.value,
                 startDate:   form.dateFrom.value,
                 endDate:     form.dateTo.value,
                 startTime:   form.timeFrom.value,
@@ -2680,6 +3002,165 @@ ${notesDisplay ? `
                     (l.date       || '').toLowerCase().includes(q)
                 );
             renderLogsTable(filtered);
+        }
+
+        // ─── الحجوزات المحذوفة (من الشيت المنفصل) ──────────────────────
+        async function toggleDeletedBookingsModal() {
+            const modal = document.getElementById('deletedBookingsModal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                await loadDeletedBookings();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function loadDeletedBookings() {
+            const tbody = document.getElementById('deletedBookingsTableBody');
+            tbody.innerHTML = `
+                <tr><td colspan="8" class="text-center py-12 text-slate-400 font-bold">
+                    <div class="flex flex-col items-center gap-3">
+                        <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
+                        <span>جاري تحميل الحجوزات المحذوفة...</span>
+                    </div>
+                </td></tr>`;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+
+            let records = [];
+            try {
+                if (DELETE_LOG_URL && !DELETE_LOG_URL.includes('PASTE_YOUR_NEW_DEPLOYMENT_ID_HERE')) {
+                    const res = await fetch(`${DELETE_LOG_URL}?t=${Date.now()}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const rows = data.rows || [];
+                        // الصف الأول عناوين الأعمدة - نتجاهله
+                        records = rows.slice(1).map(r => ({
+                            serverTime: r[0] || '',
+                            deletedAt:  r[1] || '',
+                            deletedBy:  r[2] || '',
+                            deleteType: r[3] || '',
+                            company:    r[4] || '',
+                            phone:      r[5] || '',
+                            hallName:   r[6] || '',
+                            startDate:  r[7] || '',
+                            endDate:    r[8] || '',
+                            startTime:  r[9] || '',
+                            endTime:    r[10] || '',
+                            notes:      r[11] || '',
+                            bookingId:  r[12] || '',
+                            groupId:    r[13] || ''
+                        }));
+                    }
+                }
+            } catch (e) {
+                // في حالة الخطأ نعرض القائمة فارغة بدل تعطيل الواجهة
+                records = [];
+            }
+
+            // ترتيب من الأحدث للأقدم
+            records.sort((a, b) => {
+                const tsA = a.deletedAt || '';
+                const tsB = b.deletedAt || '';
+                if (tsA && tsB) return tsB.localeCompare(tsA);
+                if (tsA) return -1;
+                if (tsB) return 1;
+                return 0;
+            });
+
+            window._allDeletedBookings = records;
+
+            const searchInput = document.getElementById('deletedBookingsSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            renderDeletedBookingsTable(records);
+        }
+
+        function renderDeletedBookingsTable(records) {
+            const tbody = document.getElementById('deletedBookingsTableBody');
+            const badge = document.getElementById('deletedBookingsCountBadge');
+            if (badge) badge.textContent = records.length + ' حجز محذوف';
+
+            if (!records || records.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="8" class="text-center py-16 text-slate-400 font-bold">
+                        <div class="flex flex-col items-center gap-3">
+                            <i data-lucide="inbox" class="w-12 h-12 text-slate-300"></i>
+                            <span>لا توجد حجوزات محذوفة حتى الآن</span>
+                        </div>
+                    </td></tr>`;
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                return;
+            }
+
+            const fmtDate = d => d ? String(d).split('-').reverse().join('/') : '—';
+
+            tbody.innerHTML = records.map((r, i) => {
+                let tsDate = '—', tsTime = '';
+                if (r.deletedAt) {
+                    try {
+                        const d = new Date(r.deletedAt);
+                        tsDate = d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                        tsTime = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                    } catch (e) { /* تجاهل */ }
+                }
+
+                const dateRange = r.startDate
+                    ? (r.endDate && r.endDate !== r.startDate ? `${fmtDate(r.startDate)} → ${fmtDate(r.endDate)}` : fmtDate(r.startDate))
+                    : '—';
+
+                const typeColor = r.deleteType === 'الحجز بالكامل'
+                    ? 'bg-red-100 text-red-700 border border-red-200'
+                    : 'bg-orange-100 text-orange-700 border border-orange-200';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 group">
+                        <td class="px-3 py-3 text-xs font-bold text-slate-300 text-center w-8 group-hover:text-slate-500">${records.length - i}</td>
+                        <td class="px-3 py-3">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg ${typeColor} whitespace-nowrap">
+                                <i data-lucide="trash-2" class="w-3 h-3 shrink-0"></i>
+                                ${r.deleteType || '—'}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 font-bold text-[#6E1418] text-sm max-w-[160px]">
+                            <div class="truncate" title="${(r.company || '').replace(/"/g, '&quot;')}">${r.company || '—'}</div>
+                        </td>
+                        <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap" style="direction:ltr; text-align:right;">${r.phone || '—'}</td>
+                        <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${r.hallName || '—'}</td>
+                        <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${dateRange}</td>
+                        <td class="px-3 py-3">
+                            <div class="font-bold text-slate-700 text-sm">${tsDate}</div>
+                            <div class="text-xs text-slate-400 font-mono mt-0.5">${tsTime}</div>
+                        </td>
+                        <td class="px-3 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500 font-black text-xs border border-slate-200">
+                                    ${r.deletedBy ? r.deletedBy.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <span class="text-xs font-bold text-slate-600 break-all" style="direction:ltr; max-width:160px;" title="${r.deletedBy || ''}">${r.deletedBy || '—'}</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function filterDeletedBookings() {
+            const q = (document.getElementById('deletedBookingsSearchInput').value || '').trim().toLowerCase();
+            if (!window._allDeletedBookings) return;
+            const filtered = !q
+                ? window._allDeletedBookings
+                : window._allDeletedBookings.filter(r =>
+                    (r.company    || '').toLowerCase().includes(q) ||
+                    (r.phone      || '').toLowerCase().includes(q) ||
+                    (r.hallName   || '').toLowerCase().includes(q) ||
+                    (r.deletedBy  || '').toLowerCase().includes(q) ||
+                    (r.deleteType || '').toLowerCase().includes(q) ||
+                    (r.startDate  || '').toLowerCase().includes(q)
+                );
+            renderDeletedBookingsTable(filtered);
         }
 
         // ─── Print Upcoming Bookings ───────────────────────────────────────
