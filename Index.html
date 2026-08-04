@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PANSEAS | Logistics & Shipping</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;600;700&family=Cairo:wght@300;400;600;700;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --deep-blue: #0d2347;
+    --mid-blue: #1a3a6b;
+    --accent: #c8922a;
+    --accent-light: #e8b84b;
+    --white: #f5f2ec;
+    --light-gray: #e8e4dc;
+    --text-muted: #8a8070;
+    --gold-line: linear-gradient(90deg, transparent, var(--accent), transparent);
+    --font-en-display: 'Playfair Display', serif;
+    --font-en-body: 'Barlow', sans-serif;
+    --font-en-condensed: 'Barlow Condensed', sans-serif;
+    --font-ar-display: 'Amiri', serif;
+    --font-ar-body: 'Cairo', sans-serif;
+  }
+
+  /* ===== LANG SYSTEM ===== */
+  .lang-en { display: block; }
+  .lang-ar { display: none; }
+  [data-inline].lang-en { display: inline; }
+  [data-inline].lang-ar { display: none; }
+
+  html[lang="ar"] .lang-en { display: none !important; }
+  html[lang="ar"] .lang-ar { display: block !important; }
+  html[lang="ar"] [data-inline].lang-en { display: none !important; }
+  html[lang="ar"] [data-inline].lang-ar { display: inline !important; }
+
+  /* Arabic font overrides */
+  html[lang="ar"] body {
+    font-family: var(--font-ar-body);
+  }
+  html[lang="ar"] .section-title,
+  html[lang="ar"] .hero-title,
+  html[lang="ar"] .page-hero-title,
+  html[lang="ar"] .customs-title,
+  html[lang="ar"] .footer-logo {
+    font-family: var(--font-ar-display);
+  }
+  html[lang="ar"] .nav-links a,
+  html[lang="ar"] .section-tag,
+  html[lang="ar"] .hero-tag,
+  html[lang="ar"] .page-hero-sub,
+  html[lang="ar"] .stat-label,
+  html[lang="ar"] .btn-primary,
+  html[lang="ar"] .btn-outline,
+  html[lang="ar"] .feature-title,
+  html[lang="ar"] .service-name,
+  html[lang="ar"] .chandler-name,
+  html[lang="ar"] .info-card-title,
+  html[lang="ar"] .contact-detail-content h4,
+  html[lang="ar"] .footer-col h4,
+  html[lang="ar"] .value-content h4 {
+    font-family: var(--font-ar-body);
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+  html[lang="ar"] .nav-logo-text {
+    font-family: var(--font-ar-display);
+    letter-spacing: 2px;
+  }
+
+  /* RTL layout */
+  html[lang="ar"] .hero-visual {
+    right: auto;
+    left: 0;
+  }
+  html[lang="ar"] .hero-visual::before {
+    background: linear-gradient(to left, var(--navy) 0%, transparent 40%);
+  }
+  html[lang="ar"] .hero-content {
+    margin-right: 0;
+    margin-left: auto;
+  }
+  html[lang="ar"] .section-tag::before {
+    order: 1;
+    margin-left: 0;
+    margin-right: 10px;
+  }
+  html[lang="ar"] .hero-tag::before {
+    order: 1;
+  }
+  html[lang="ar"] .section-divider {
+    margin-right: 0;
+    margin-left: auto;
+  }
+  html[lang="ar"] .value-item {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+  html[lang="ar"] .contact-detail {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+  html[lang="ar"] .footer-links a::before { content: '←'; }
+  html[lang="ar"] .footer-contact-items li { flex-direction: row-reverse; text-align: right; }
+  html[lang="ar"] .feature-card { text-align: right; }
+  html[lang="ar"] .chandler-overlay { text-align: right; }
+  html[lang="ar"] .stat-item { text-align: center; }
+  html[lang="ar"] .hero-btns { flex-direction: row-reverse; }
+  html[lang="ar"] .hero-location { flex-direction: row-reverse; }
+  html[lang="ar"] .service-card::before { transform-origin: right; }
+  html[lang="ar"] .customs-content { direction: rtl; }
+  html[lang="ar"] .about-full-grid { direction: rtl; }
+  html[lang="ar"] .contact-grid { direction: rtl; }
+  html[lang="ar"] .about-grid { direction: rtl; }
+  html[lang="ar"] .footer-grid { direction: rtl; }
+  html[lang="ar"] .form-row { direction: rtl; }
+  html[lang="ar"] .form-group label { text-align: right; }
+  html[lang="ar"] .form-group input,
+  html[lang="ar"] .form-group textarea,
+  html[lang="ar"] .form-group select { text-align: right; direction: rtl; }
+  html[lang="ar"] .about-features { direction: rtl; }
+  html[lang="ar"] .hero-subtitle { text-align: right; }
+  html[lang="ar"] .about-text p,
+  html[lang="ar"] .about-full-text p,
+  html[lang="ar"] .customs-text p { text-align: right; }
+  html[lang="ar"] .suez-badge p { text-align: center; }
+  html[lang="ar"] .footer-about { text-align: right; }
+  html[lang="ar"] .footer-copy { text-align: right; }
+  html[lang="ar"] .info-card p { text-align: right; direction: rtl; }
+  html[lang="ar"] .service-desc { text-align: right; }
+  html[lang="ar"] .service-body { text-align: right; }
+  html[lang="ar"] .chandler-line { margin-right: 0; margin-left: auto; }
+  html[lang="ar"] .page-hero-content { text-align: right; direction: rtl; }
+  html[lang="ar"] nav { direction: rtl; }
+  html[lang="ar"] .nav-links { flex-direction: row-reverse; }
+  html[lang="ar"] .footer-bottom { flex-direction: row-reverse; }
+  html[lang="ar"] .hero-tag { flex-direction: row-reverse; }
+  html[lang="ar"] .section-tag { flex-direction: row-reverse; }
+
+  /* ===== LANG TOGGLE BUTTON ===== */
+  .lang-toggle {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 9999;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(200, 146, 42, 0.5), 0 0 0 0 rgba(200,146,42,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: all 0.3s;
+    animation: pulse-ring 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 4px 20px rgba(200,146,42,0.5), 0 0 0 0 rgba(200,146,42,0.3); }
+    50% { box-shadow: 0 4px 20px rgba(200,146,42,0.5), 0 0 0 10px rgba(200,146,42,0); }
+  }
+
+  .lang-toggle:hover {
+    background: var(--accent-light);
+    transform: scale(1.1) rotate(5deg);
+    animation: none;
+    box-shadow: 0 8px 30px rgba(200, 146, 42, 0.7);
+  }
+
+  .lang-toggle-flag {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  .lang-toggle-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: 1px;
+    font-family: 'Barlow Condensed', sans-serif;
+    line-height: 1;
+  }
+
+  /* Tooltip */
+  .lang-toggle::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    right: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--deep-blue);
+    color: var(--white);
+    font-size: 0.78rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(200,146,42,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .lang-toggle:hover::after { opacity: 1; }
+
+  html[lang="ar"] .lang-toggle {
+    right: auto;
+    left: 28px;
+  }
+
+  html[lang="ar"] .lang-toggle::after {
+    right: auto;
+    left: calc(100% + 12px);
+  }
+
+  /* Transition overlay */
+  .lang-transition {
+    position: fixed;
+    inset: 0;
+    background: var(--navy);
+    z-index: 8888;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+
+  .lang-transition.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ===== BASE STYLES ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-en-body);
+    background: var(--navy);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ===== NAVIGATION ===== */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: rgba(10, 22, 40, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(200, 146, 42, 0.3);
+    padding: 0 4vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .nav-logo-img { height: 40px; filter: brightness(1.2); }
+
+  .nav-logo-text {
+    font-family: var(--font-en-display);
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: 3px;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 2px;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 8px 14px;
+    color: var(--light-gray);
+    text-decoration: none;
+    font-family: var(--font-en-condensed);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+
+  .nav-links a:hover, .nav-links a.active {
+    color: var(--accent-light);
+    background: rgba(200, 146, 42, 0.1);
+  }
+
+  .nav-cta {
+    background: var(--accent) !important;
+    color: var(--navy) !important;
+    padding: 8px 20px !important;
+    border-radius: 3px;
+  }
+
+  .nav-cta:hover { background: var(--accent-light) !important; color: var(--navy) !important; }
+
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 5px;
+  }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--accent); transition: all 0.3s; }
+
+  /* ===== PAGES ===== */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding-top: 70px;
+  }
+
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 70% 50%, rgba(26,58,107,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 80%, rgba(200,146,42,0.1) 0%, transparent 50%),
+      linear-gradient(135deg, var(--navy) 0%, var(--deep-blue) 50%, #0e2a50 100%);
+  }
+
+  .ocean-lines {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 200px; overflow: hidden;
+  }
+  .ocean-lines::before, .ocean-lines::after {
+    content: ''; position: absolute; bottom: 0;
+    left: -50%; right: -50%; height: 2px;
+    background: var(--gold-line);
+    animation: waveLine 6s ease-in-out infinite;
+  }
+  .ocean-lines::after { bottom: 40px; opacity: 0.5; animation-delay: 2s; animation-duration: 8s; }
+  @keyframes waveLine {
+    0%, 100% { transform: translateX(-10%) skewY(0deg); }
+    50% { transform: translateX(5%) skewY(0.3deg); }
+  }
+
+  .particles { position: absolute; inset: 0; pointer-events: none; }
+  .particle {
+    position: absolute; width: 2px; height: 2px;
+    background: var(--accent); border-radius: 50%;
+    opacity: 0.4; animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 0.4; } 90% { opacity: 0.4; }
+    100% { transform: translateY(-100px) translateX(30px); opacity: 0; }
+  }
+
+  .hero-content {
+    position: relative; z-index: 2;
+    padding: 4vw; max-width: 700px;
+    animation: heroIn 1s ease-out forwards;
+  }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: rgba(200, 146, 42, 0.15);
+    border: 1px solid rgba(200, 146, 42, 0.4);
+    color: var(--accent-light);
+    font-family: var(--font-en-condensed);
+    font-size: 0.75rem; letter-spacing: 2px;
+    text-transform: uppercase; padding: 6px 16px;
+    border-radius: 2px; margin-bottom: 28px;
+  }
+  .hero-tag::before { content: ''; width: 20px; height: 1px; background: var(--accent); }
+
+  .hero-title {
+    font-family: var(--font-en-display);
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 900; line-height: 1.05;
+    margin-bottom: 24px; color: var(--white);
+  }
+  .hero-title em { font-style: normal; color: var(--accent-light); }
+
+  .hero-subtitle {
+    font-size: 1rem; color: rgba(245,242,236,0.7);
+    line-height: 1.8; margin-bottom: 40px; max-width: 520px;
+  }
+
+  .hero-location {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-en-condensed);
+    font-size: 0.85rem; letter-spacing: 1px;
+    color: var(--accent-light); margin-bottom: 40px;
+  }
+  .hero-location::before { content: '⚓'; font-size: 1rem; }
+
+  .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .btn-primary {
+    display: inline-block; padding: 14px 32px;
+    background: var(--accent); color: var(--navy);
+    font-family: var(--font-en-condensed);
+    font-weight: 700; font-size: 0.85rem;
+    letter-spacing: 2px; text-transform: uppercase;
+    text-decoration: none; border-radius: 2px;
+    cursor: pointer; border: none; transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(200,146,42,0.3);
+  }
+  .btn-primary:hover {
+    background: var(--accent-light); transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(200,146,42,0.5);
+  }
+
+  .btn-outline {
+    display: inline-block; padding: 14px 32px;
+    background: transparent; color: var(--white);
+    font-family: var(--font-en-condensed);
+    font-weight: 700; font-size: 0.85rem;
+    letter-spacing: 2px; text-transform: uppercase;
+    text-decoration: none; border-radius: 2px;
+    cursor: pointer; border: 1px solid rgba(245,242,236,0.4);
+    transition: all 0.3s;
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+  .hero-visual {
+    position: absolute; right: 0; top: 70px; bottom: 0;
+    width: 45%; overflow: hidden;
+  }
+  .hero-visual img {
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0.25; filter: sepia(0.3) hue-rotate(200deg) saturate(0.8);
+  }
+  .hero-visual::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to right, var(--navy) 0%, transparent 40%);
+    z-index: 1;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    background: var(--deep-blue);
+    border-top: 1px solid rgba(200,146,42,0.2);
+    border-bottom: 1px solid rgba(200,146,42,0.2);
+    padding: 28px 4vw;
+    display: flex; justify-content: center;
+    gap: 60px; flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: var(--font-en-display);
+    font-size: 2.2rem; font-weight: 700; color: var(--accent-light);
+  }
+  .stat-label {
+    font-family: var(--font-en-condensed);
+    font-size: 0.75rem; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-muted); margin-top: 4px;
+  }
+
+  /* ===== SECTIONS ===== */
+  .section { padding: 90px 4vw; }
+
+  .section-tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--accent);
+    font-family: var(--font-en-condensed);
+    font-size: 0.75rem; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .section-tag::before { content: ''; width: 30px; height: 1px; background: var(--accent); }
+
+  .section-title {
+    font-family: var(--font-en-display);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700; margin-bottom: 20px;
+    color: var(--white); line-height: 1.2;
+  }
+
+  .section-divider { width: 60px; height: 2px; background: var(--accent); margin-bottom: 40px; }
+
+  /* About on home */
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .about-text p { color: rgba(245,242,236,0.75); line-height: 1.85; margin-bottom: 20px; font-size: 0.95rem; }
+  .about-features { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+
+  .feature-card {
+    background: rgba(13,35,71,0.6);
+    border: 1px solid rgba(200,146,42,0.2);
+    padding: 20px; border-radius: 4px; transition: all 0.3s;
+  }
+  .feature-card:hover {
+    border-color: rgba(200,146,42,0.5);
+    transform: translateY(-4px);
+    background: rgba(26,58,107,0.5);
+  }
+  .feature-icon { font-size: 1.6rem; margin-bottom: 10px; display: block; }
+  .feature-title {
+    font-family: var(--font-en-condensed);
+    font-size: 0.85rem; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--accent-light); margin-bottom: 8px;
+  }
+  .feature-text { font-size: 0.8rem; color: rgba(245,242,236,0.6); line-height: 1.6; }
+
+  .about-image-stack { position: relative; height: 420px; }
+  .about-img {
+    position: absolute; border-radius: 4px; object-fit: cover;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .about-img-1 { width: 70%; height: 75%; top: 0; left: 0; border: 2px solid rgba(200,146,42,0.3); }
+  .about-img-2 { width: 55%; height: 55%; bottom: 0; right: 0; border: 2px solid rgba(200,146,42,0.3); }
+  .about-badge {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--accent); color: var(--navy);
+    width: 90px; height: 90px; border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: var(--font-en-display); z-index: 10;
+    box-shadow: 0 4px 20px rgba(200,146,42,0.5);
+  }
+  .about-badge .num { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+  .about-badge .text {
+    font-size: 0.42rem; letter-spacing: 0.5px;
+    text-transform: uppercase; text-align: center;
+    font-family: var(--font-en-condensed);
+  }
+
+  /* Services */
+  .services-bg { background: var(--deep-blue); }
+  .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-top: 50px; }
+
+  .service-card {
+    background: rgba(10,22,40,0.8);
+    border: 1px solid rgba(200,146,42,0.15);
+    border-radius: 4px; overflow: hidden;
+    transition: all 0.35s; cursor: pointer; position: relative;
+  }
+  .service-card::before {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px; background: var(--accent);
+    transform: scaleX(0); transition: transform 0.35s; transform-origin: left;
+  }
+  .service-card:hover { border-color: rgba(200,146,42,0.4); transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+  .service-card:hover::before { transform: scaleX(1); }
+  .service-img { width: 100%; height: 200px; object-fit: cover; filter: brightness(0.7) sepia(0.2); transition: all 0.35s; }
+  .service-card:hover .service-img { filter: brightness(0.85) sepia(0.1); }
+  .service-body { padding: 24px; }
+  .service-number { font-family: var(--font-en-display); font-size: 3rem; font-weight: 900; color: rgba(200,146,42,0.1); line-height: 1; margin-bottom: -10px; }
+  .service-name { font-family: var(--font-en-condensed); font-size: 1.1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-light); margin-bottom: 10px; }
+  .service-desc { font-size: 0.85rem; color: rgba(245,242,236,0.6); line-height: 1.7; }
+
+  /* Page hero */
+  .page-hero {
+    min-height: 40vh; display: flex; align-items: flex-end;
+    padding: 80px 4vw 50px;
+    background: linear-gradient(135deg, var(--navy), var(--deep-blue));
+    border-bottom: 1px solid rgba(200,146,42,0.2);
+    position: relative; overflow: hidden;
+  }
+  .page-hero::before {
+    content: ''; position: absolute;
+    top: -50%; right: -10%; width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,146,42,0.08) 0%, transparent 70%);
+  }
+  .page-hero-content { position: relative; z-index: 2; }
+  .page-hero-title { font-family: var(--font-en-display); font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 900; line-height: 1.1; color: var(--white); margin-bottom: 16px; }
+  .page-hero-sub { font-family: var(--font-en-condensed); font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
+
+  /* Customs */
+  .customs-content { display: grid; grid-template-columns: 3fr 2fr; gap: 60px; align-items: start; }
+  .customs-text p { color: rgba(245,242,236,0.75); line-height: 1.85; margin-bottom: 20px; font-size: 0.95rem; }
+  .customs-title { font-family: var(--font-en-display); font-size: 1.8rem; color: var(--white); margin-bottom: 24px; }
+  .customs-title span { color: var(--accent-light); }
+  .customs-sidebar { position: sticky; top: 90px; }
+  .customs-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 30px; }
+  .customs-images img { width: 100%; height: 130px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(200,146,42,0.2); filter: brightness(0.8); transition: all 0.3s; }
+  .customs-images img:hover { filter: brightness(1); border-color: var(--accent); }
+
+  /* Info card */
+  .info-card { background: rgba(13,35,71,0.7); border: 1px solid rgba(200,146,42,0.25); border-radius: 6px; padding: 28px; margin-bottom: 20px; }
+  .info-card-title { font-family: var(--font-en-condensed); font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+
+  /* Chandlers */
+  .chandlers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; margin-top: 50px; }
+  .chandler-card { position: relative; border-radius: 6px; overflow: hidden; height: 300px; cursor: pointer; }
+  .chandler-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; filter: brightness(0.6); }
+  .chandler-card:hover img { transform: scale(1.05); filter: brightness(0.8); }
+  .chandler-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,22,40,0.95) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 28px; }
+  .chandler-name { font-family: var(--font-en-display); font-size: 1.4rem; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+  .chandler-desc { font-size: 0.85rem; color: rgba(245,242,236,0.65); line-height: 1.6; max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .chandler-card:hover .chandler-desc { max-height: 100px; }
+  .chandler-line { width: 30px; height: 2px; background: var(--accent); margin-bottom: 10px; transition: width 0.3s; }
+  .chandler-card:hover .chandler-line { width: 50px; }
+
+  /* Contact mini form */
+  .contact-mini { background: var(--deep-blue); border: 1px solid rgba(200,146,42,0.2); border-radius: 6px; padding: 40px; margin-top: 60px; max-width: 600px; margin-left: auto; margin-right: auto; }
+  .contact-mini h3 { font-family: var(--font-en-display); font-size: 1.6rem; color: var(--white); margin-bottom: 24px; }
+
+  /* Forms */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-family: var(--font-en-condensed); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .form-group input, .form-group textarea, .form-group select { width: 100%; background: rgba(10,22,40,0.8); border: 1px solid rgba(200,146,42,0.25); border-radius: 3px; padding: 12px 16px; color: var(--white); font-family: var(--font-en-body); font-size: 0.9rem; outline: none; transition: border-color 0.3s; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  .form-group select option { background: var(--navy); }
+  .form-success { display: none; background: rgba(200,146,42,0.15); border: 1px solid var(--accent); border-radius: 4px; padding: 16px; text-align: center; color: var(--accent-light); font-family: var(--font-en-condensed); letter-spacing: 1px; margin-top: 16px; }
+
+  /* About page */
+  .about-full-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+  .about-full-text p { color: rgba(245,242,236,0.75); line-height: 1.85; margin-bottom: 20px; font-size: 0.95rem; }
+  .team-values { display: flex; flex-direction: column; gap: 20px; margin-top: 40px; }
+  .value-item { display: flex; gap: 20px; align-items: flex-start; }
+  .value-num { font-family: var(--font-en-display); font-size: 2.5rem; font-weight: 900; color: rgba(200,146,42,0.2); line-height: 1; min-width: 50px; }
+  .value-content h4 { font-family: var(--font-en-condensed); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent-light); margin-bottom: 6px; }
+  .value-content p { font-size: 0.85rem; color: rgba(245,242,236,0.6); line-height: 1.6; margin: 0 !important; }
+  .about-aside { position: sticky; top: 90px; }
+  .suez-badge { background: linear-gradient(135deg, var(--deep-blue), var(--mid-blue)); border: 1px solid rgba(200,146,42,0.3); border-radius: 6px; padding: 36px; text-align: center; margin-bottom: 24px; }
+  .suez-badge .icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+  .suez-badge h3 { font-family: var(--font-en-display); font-size: 1.4rem; color: var(--white); margin-bottom: 12px; }
+  .suez-badge p { font-size: 0.85rem; color: rgba(245,242,236,0.6); line-height: 1.7; }
+
+  /* Contact */
+  .contact-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 60px; align-items: start; }
+  .contact-info { position: sticky; top: 90px; }
+  .contact-detail { display: flex; gap: 16px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid rgba(200,146,42,0.1); }
+  .contact-detail:last-child { border-bottom: none; }
+  .contact-icon { width: 44px; height: 44px; background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+  .contact-detail-content h4 { font-family: var(--font-en-condensed); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .contact-detail-content p { font-size: 0.9rem; color: rgba(245,242,236,0.75); line-height: 1.6; }
+  .contact-detail-content a { color: rgba(245,242,236,0.75); text-decoration: none; }
+  .contact-detail-content a:hover { color: var(--accent-light); }
+  .contact-form-card { background: rgba(13,35,71,0.5); border: 1px solid rgba(200,146,42,0.2); border-radius: 6px; padding: 40px; }
+
+  /* Book */
+  .book-form-card { max-width: 700px; margin: 0 auto; background: rgba(13,35,71,0.5); border: 1px solid rgba(200,146,42,0.2); border-radius: 6px; padding: 50px; }
+
+  /* ===== FOOTER ===== */
+  footer { background: #060f1c; border-top: 1px solid rgba(200,146,42,0.2); padding: 60px 4vw 30px; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 50px; margin-bottom: 50px; }
+  .footer-logo { font-family: var(--font-en-display); font-size: 1.8rem; font-weight: 900; color: var(--white); letter-spacing: 3px; margin-bottom: 16px; }
+  .footer-logo span { color: var(--accent); }
+  .footer-about { font-size: 0.85rem; color: rgba(245,242,236,0.5); line-height: 1.7; margin-bottom: 20px; }
+  .footer-social { display: flex; gap: 10px; }
+  .social-btn { width: 36px; height: 36px; background: rgba(200,146,42,0.15); border: 1px solid rgba(200,146,42,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: var(--accent-light); text-decoration: none; transition: all 0.3s; }
+  .social-btn:hover { background: var(--accent); color: var(--navy); }
+  .footer-col h4 { font-family: var(--font-en-condensed); font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-links a { font-size: 0.85rem; color: rgba(245,242,236,0.5); text-decoration: none; cursor: pointer; transition: color 0.2s; display: flex; align-items: center; gap: 8px; }
+  .footer-links a::before { content: '→'; color: var(--accent); font-size: 0.7rem; }
+  .footer-links a:hover { color: var(--accent-light); }
+  .footer-contact-items { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .footer-contact-items li { font-size: 0.82rem; color: rgba(245,242,236,0.5); line-height: 1.5; display: flex; gap: 8px; }
+  .footer-contact-items li span:first-child { color: var(--accent); }
+  .footer-bottom { border-top: 1px solid rgba(200,146,42,0.1); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-copy { font-size: 0.78rem; color: rgba(245,242,236,0.3); font-family: var(--font-en-condensed); letter-spacing: 1px; }
+
+  /* Reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+    .nav-links.open { display: flex; flex-direction: column; position: fixed; top: 70px; left: 0; right: 0; background: var(--navy); border-bottom: 1px solid rgba(200,146,42,0.2); padding: 20px; gap: 4px; }
+    .hero-visual { display: none; }
+    .about-grid, .about-full-grid, .customs-content, .contact-grid, .footer-grid { grid-template-columns: 1fr; gap: 40px; }
+    .about-features { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .hero-title { font-size: 2.8rem; }
+    .stats-bar { gap: 30px; }
+    .book-form-card { padding: 28px; }
+    .contact-form-card { padding: 28px; }
+    .contact-mini { padding: 24px; }
+    footer { padding: 40px 4vw 24px; }
+    .lang-toggle { bottom: 20px; right: 20px; width: 52px; height: 52px; }
+  }
+
+  @media (max-width: 600px) {
+    .chandlers-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+    .customs-images { grid-template-columns: 1fr; }
+    html[lang="ar"] .lang-toggle { left: 16px; right: auto; }
+    .lang-toggle { right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Language transition overlay -->
+<div class="lang-transition" id="langTransition"></div>
+
+<!-- LANGUAGE TOGGLE BUTTON -->
+<button class="lang-toggle" id="langToggle" onclick="toggleLanguage()" data-tooltip="Switch to Arabic">
+  <span class="lang-toggle-flag" id="toggleFlag">🇪🇬</span>
+  <span class="lang-toggle-label" id="toggleLabel">عربي</span>
+</button>
+
+<!-- ===== NAVIGATION ===== -->
+<nav id="mainNav">
+  <div class="nav-logo" onclick="showPage('home')">
+    <img class="nav-logo-img" src="https://static.wixstatic.com/media/b8efd5_46a800d10fe84bd5a9de363b3eda624f~mv2.png/v1/fill/w_297,h_77,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/png.png" alt="PANSEAS" onerror="this.style.display='none'">
+    <span class="nav-logo-text">PANSEAS</span>
+  </div>
+  <ul class="nav-links" id="navLinks">
+    <li><a onclick="showPage('home')" id="nav-home" class="active">
+      <span class="lang-en" data-inline>Home</span>
+      <span class="lang-ar" data-inline>الرئيسية</span>
+    </a></li>
+    <li><a onclick="showPage('customs')" id="nav-customs">
+      <span class="lang-en" data-inline>Customs Clearance</span>
+      <span class="lang-ar" data-inline>التخليص الجمركي</span>
+    </a></li>
+    <li><a onclick="showPage('chandlers')" id="nav-chandlers">
+      <span class="lang-en" data-inline>Ship Chandlers</span>
+      <span class="lang-ar" data-inline>تموين السفن</span>
+    </a></li>
+    <li><a onclick="showPage('about')" id="nav-about">
+      <span class="lang-en" data-inline>About Us</span>
+      <span class="lang-ar" data-inline>من نحن</span>
+    </a></li>
+    <li><a onclick="showPage('contact')" id="nav-contact">
+      <span class="lang-en" data-inline>Contact Us</span>
+      <span class="lang-ar" data-inline>اتصل بنا</span>
+    </a></li>
+    <li><a onclick="showPage('book')" id="nav-book" class="nav-cta">
+      <span class="lang-en" data-inline>Book Online</span>
+      <span class="lang-ar" data-inline>احجز الآن</span>
+    </a></li>
+  </ul>
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ================================================================ -->
+<!-- PAGE: HOME -->
+<!-- ================================================================ -->
+<div class="page active" id="page-home">
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="particles" id="particles"></div>
+    <div class="ocean-lines"></div>
+    <div class="hero-visual">
+      <img src="https://static.wixstatic.com/media/41d000_e608cb8750edb6c22b86dbfd03ed0019.png/v1/fill/w_438,h_462,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/41d000_e608cb8750edb6c22b86dbfd03ed0019.png" alt="Ship">
+    </div>
+    <div class="hero-content">
+      <div class="hero-tag">
+        <span class="lang-en" data-inline>Suez Canal — Port Said, Egypt</span>
+        <span class="lang-ar" data-inline>قناة السويس — بور سعيد، مصر</span>
+      </div>
+      <h1 class="hero-title">
+        <span class="lang-en">Your Gateway to<br><em>Global Logistics</em></span>
+        <span class="lang-ar">بوابتك إلى<br><em>اللوجستيات العالمية</em></span>
+      </h1>
+      <p class="hero-subtitle">
+        <span class="lang-en" data-inline>PANSEAS is a one-stop marine supplies and shipping agency, fully recognized in the Suez Canal and all Egyptian ports. We deliver quality, safety, and speed for all your maritime needs.</span>
+        <span class="lang-ar" data-inline>بانسيز وكالة شحن بحري متكاملة، معترف بها في قناة السويس وجميع الموانئ المصرية. نوفر الجودة والأمان والسرعة لجميع احتياجاتك البحرية.</span>
+      </p>
+      <div class="hero-location">
+        <span class="lang-en" data-inline>Egypt's Premier Shipping & Customs Clearance Agency</span>
+        <span class="lang-ar" data-inline>الوكالة الرائدة في الشحن والتخليص الجمركي بمصر</span>
+      </div>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="showPage('contact')">
+          <span class="lang-en" data-inline>Get in Touch</span>
+          <span class="lang-ar" data-inline>تواصل معنا</span>
+        </button>
+        <button class="btn-outline" onclick="showPage('about')">
+          <span class="lang-en" data-inline>Learn More</span>
+          <span class="lang-ar" data-inline>اعرف أكثر</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats-bar">
+    <div class="stat-item reveal">
+      <div class="stat-num">25+</div>
+      <div class="stat-label">
+        <span class="lang-en" data-inline>Years Experience</span>
+        <span class="lang-ar" data-inline>سنوات خبرة</span>
+      </div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-num">
+        <span class="lang-en" data-inline>All</span>
+        <span class="lang-ar" data-inline>كل</span>
+      </div>
+      <div class="stat-label">
+        <span class="lang-en" data-inline>Egyptian Ports</span>
+        <span class="lang-ar" data-inline>الموانئ المصرية</span>
+      </div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-num">3</div>
+      <div class="stat-label">
+        <span class="lang-en" data-inline>Freight Modes</span>
+        <span class="lang-ar" data-inline>أنواع شحن</span>
+      </div>
+    </div>
+    <div class="stat-item reveal">
+      <div class="stat-num">24/7</div>
+      <div class="stat-label">
+        <span class="lang-en" data-inline>Support</span>
+        <span class="lang-ar" data-inline>دعم متواصل</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- About section -->
+  <section class="section">
+    <div class="about-grid">
+      <div class="about-text">
+        <div class="section-tag">
+          <span class="lang-en" data-inline>About PANSEAS</span>
+          <span class="lang-ar" data-inline>عن بانسيز</span>
+        </div>
+        <h2 class="section-title">
+          <span class="lang-en">Marine Supplies &<br>Shipping Experts</span>
+          <span class="lang-ar">خبراء التوريد البحري<br>والشحن الدولي</span>
+        </h2>
+        <div class="section-divider"></div>
+        <p>
+          <span class="lang-en" data-inline>PANSEAS is modelled on a one stop marine supplies and service concept. There are significant tangible savings when group company services are used in consolidation including ship repairs, general supplies, engineering services, ship safety equipment's, Deck & Engine stores.</span>
+          <span class="lang-ar" data-inline>تأسست بانسيز على مفهوم نقطة التوريد البحري الشاملة. يوفر تجميع خدمات الشركة وفورات ملموسة تشمل إصلاح السفن والتوريدات العامة والخدمات الهندسية ومعدات السلامة البحرية ومخازن الظهر والمحرك.</span>
+        </p>
+        <p>
+          <span class="lang-en" data-inline>PANSEAS has consistently aimed to achieve the highest standard in service to all customers and has gained its place as one of the most recognized and trusted names in the marine-supply industry.</span>
+          <span class="lang-ar" data-inline>سعت بانسيز باستمرار لتحقيق أعلى معايير الخدمة لجميع عملائها، واكتسبت مكانتها كواحدة من أكثر الأسماء شهرة وموثوقية في صناعة التوريد البحري.</span>
+        </p>
+        <div class="about-features">
+          <div class="feature-card">
+            <span class="feature-icon">🚢</span>
+            <div class="feature-title"><span class="lang-en" data-inline>Ship Chandling</span><span class="lang-ar" data-inline>تموين السفن</span></div>
+            <div class="feature-text"><span class="lang-en" data-inline>Complete marine supplies including deck & engine stores, provisions, and fresh provisions.</span><span class="lang-ar" data-inline>توريد بحري متكامل يشمل مخازن الظهر والمحرك والمؤن والمواد الطازجة.</span></div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">📋</span>
+            <div class="feature-title"><span class="lang-en" data-inline>Customs Clearance</span><span class="lang-ar" data-inline>التخليص الجمركي</span></div>
+            <div class="feature-text"><span class="lang-en" data-inline>Fast, reliable customs procedures at all Egyptian ports and airports.</span><span class="lang-ar" data-inline>إجراءات جمركية سريعة وموثوقة في جميع الموانئ والمطارات المصرية.</span></div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">🌍</span>
+            <div class="feature-title"><span class="lang-en" data-inline>Import & Export</span><span class="lang-ar" data-inline>استيراد وتصدير</span></div>
+            <div class="feature-text"><span class="lang-en" data-inline>International trade across global markets with expert representation at all ports.</span><span class="lang-ar" data-inline>تجارة دولية عبر الأسواق العالمية مع تمثيل متخصص في جميع الموانئ.</span></div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">⚓</span>
+            <div class="feature-title"><span class="lang-en" data-inline>Suez Canal</span><span class="lang-ar" data-inline>قناة السويس</span></div>
+            <div class="feature-text"><span class="lang-en" data-inline>Specialized expertise in Suez Canal operations and Egyptian port procedures.</span><span class="lang-ar" data-inline>خبرة متخصصة في عمليات قناة السويس وإجراءات الموانئ المصرية.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="about-image-stack">
+        <img class="about-img about-img-1" src="https://static.wixstatic.com/media/b8efd5_a06af4acd933423cbd85709639a48b61~mv2.jpg/v1/fill/w_400,h_400,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/images.jpg" alt="Customs">
+        <img class="about-img about-img-2" src="https://static.wixstatic.com/media/b8efd5_a02ccbda03374eecb71c67078a448ed8~mv2.jpg/v1/fill/w_400,h_400,al_c,lg_1,q_80,enc_avif,quality_auto/shipping.jpg" alt="Shipping">
+        <div class="about-badge">
+          <span class="num">25+</span>
+          <span class="text"><span class="lang-en" data-inline>Years of Excellence</span><span class="lang-ar" data-inline>عاماً من التميز</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="section services-bg">
+    <div class="section-tag"><span class="lang-en" data-inline>What We Offer</span><span class="lang-ar" data-inline>خدماتنا</span></div>
+    <h2 class="section-title"><span class="lang-en">Our Core Services</span><span class="lang-ar">خدماتنا الأساسية</span></h2>
+    <div class="section-divider"></div>
+    <div class="services-grid">
+      <div class="service-card" onclick="showPage('customs')">
+        <img class="service-img" src="https://static.wixstatic.com/media/41d000_65f4100bf493b9c83da9fb06f1f5052e.jpg/v1/fill/w_400,h_400,al_c,lg_1,q_80,enc_avif,quality_auto/41d000_65f4100bf493b9c83da9fb06f1f5052e.jpg" alt="Customs">
+        <div class="service-body">
+          <div class="service-number">01</div>
+          <div class="service-name"><span class="lang-en" data-inline>Customs Clearance</span><span class="lang-ar" data-inline>التخليص الجمركي</span></div>
+          <div class="service-desc"><span class="lang-en" data-inline>The fastest and most reliable customs clearance services in Egypt.</span><span class="lang-ar" data-inline>أسرع وأكثر خدمات التخليص الجمركي موثوقية في مصر.</span></div>
+        </div>
+      </div>
+      <div class="service-card" onclick="showPage('chandlers')">
+        <img class="service-img" src="https://static.wixstatic.com/media/b8efd5_b6d9e2ff9c9d4fb8bdb6da0583a127b5~mv2.jpg/v1/fill/w_400,h_400,al_c,lg_1,q_80,enc_avif,quality_auto/download.jpg" alt="Ship Chandlers">
+        <div class="service-body">
+          <div class="service-number">02</div>
+          <div class="service-name"><span class="lang-en" data-inline>Ship Chandlers</span><span class="lang-ar" data-inline>تموين السفن</span></div>
+          <div class="service-desc"><span class="lang-en" data-inline>Complete marine supplies: deck & engine stores, provisions, fresh provisions.</span><span class="lang-ar" data-inline>توريد بحري متكامل: مخازن، مؤن، مواد طازجة.</span></div>
+        </div>
+      </div>
+      <div class="service-card">
+        <img class="service-img" src="https://static.wixstatic.com/media/b8efd5_a02ccbda03374eecb71c67078a448ed8~mv2.jpg/v1/fill/w_400,h_400,al_c,lg_1,q_80,enc_avif,quality_auto/shipping.jpg" alt="Shipping">
+        <div class="service-body">
+          <div class="service-number">03</div>
+          <div class="service-name"><span class="lang-en" data-inline>Shipping Agency</span><span class="lang-ar" data-inline>وكالة الشحن</span></div>
+          <div class="service-desc"><span class="lang-en" data-inline>Sea, land, and air freight services. Import and export for all types of goods.</span><span class="lang-ar" data-inline>شحن بحري وبري وجوي. استيراد وتصدير لجميع أنواع البضائع.</span></div>
+        </div>
+      </div>
+      <div class="service-card" onclick="showPage('book')">
+        <img class="service-img" src="https://static.wixstatic.com/media/b8efd5_bfb5fb0553694a379643b68efa668aa9~mv2.jpg/v1/fill/w_400,h_400,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/1469624917main.jpg" alt="Book">
+        <div class="service-body">
+          <div class="service-number">04</div>
+          <div class="service-name"><span class="lang-en" data-inline>Book Online</span><span class="lang-ar" data-inline>احجز إلكترونياً</span></div>
+          <div class="service-desc"><span class="lang-en" data-inline>Reserve our services online. Fast, simple, and direct.</span><span class="lang-ar" data-inline>احجز خدماتنا إلكترونياً. سريع وبسيط ومباشر.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Us -->
+  <section class="section">
+    <div class="section-tag"><span class="lang-en" data-inline>Why PANSEAS</span><span class="lang-ar" data-inline>لماذا بانسيز</span></div>
+    <h2 class="section-title"><span class="lang-en">The PANSEAS Advantage</span><span class="lang-ar">مزايا بانسيز</span></h2>
+    <div class="section-divider"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:10px;">
+      <div class="info-card reveal">
+        <div style="font-size:1.5rem;margin-bottom:12px;">👥</div>
+        <h4 style="font-family:var(--font-en-condensed);font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent-light);margin-bottom:8px;"><span class="lang-en" data-inline>Professional Team</span><span class="lang-ar" data-inline>فريق متخصص</span></h4>
+        <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);line-height:1.7;"><span class="lang-en" data-inline>Long years of experience in logistics. Our trained team handles all paperwork, documents, and provides technical and legal advice.</span><span class="lang-ar" data-inline>سنوات طويلة من الخبرة في اللوجستيات. فريقنا المدرب يتولى جميع الأوراق والوثائق ويقدم المشورة الفنية والقانونية.</span></p>
+      </div>
+      <div class="info-card reveal">
+        <div style="font-size:1.5rem;margin-bottom:12px;">🛡️</div>
+        <h4 style="font-family:var(--font-en-condensed);font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent-light);margin-bottom:8px;"><span class="lang-en" data-inline>Goods Safety</span><span class="lang-ar" data-inline>سلامة البضاعة</span></h4>
+        <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);line-height:1.7;"><span class="lang-en" data-inline>We keep the goods in their original condition and deliver them without any damage, with prompt intervention for any problem.</span><span class="lang-ar" data-inline>نحافظ على البضائع في حالتها الأصلية ونسلمها دون أي تلف، مع التدخل الفوري لحل أي مشكلة.</span></p>
+      </div>
+      <div class="info-card reveal">
+        <div style="font-size:1.5rem;margin-bottom:12px;">⚡</div>
+        <h4 style="font-family:var(--font-en-condensed);font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent-light);margin-bottom:8px;"><span class="lang-en" data-inline>Speed & Efficiency</span><span class="lang-ar" data-inline>السرعة والكفاءة</span></h4>
+        <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);line-height:1.7;"><span class="lang-en" data-inline>Experts constantly in contact with customs officials with full knowledge of all customs systems.</span><span class="lang-ar" data-inline>خبراء على تواصل مستمر مع موظفي الجمارك مع معرفة كاملة بجميع الأنظمة الجمركية.</span></p>
+      </div>
+      <div class="info-card reveal">
+        <div style="font-size:1.5rem;margin-bottom:12px;">💰</div>
+        <h4 style="font-family:var(--font-en-condensed);font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;color:var(--accent-light);margin-bottom:8px;"><span class="lang-en" data-inline>Best Rates</span><span class="lang-ar" data-inline>أفضل الأسعار</span></h4>
+        <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);line-height:1.7;"><span class="lang-en" data-inline>Best price offers with no additional expenses, giving you the best value without compromising quality.</span><span class="lang-ar" data-inline>أفضل عروض الأسعار دون أي نفقات إضافية، نمنحك أفضل قيمة دون المساس بالجودة.</span></p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /page-home -->
+
+
+<!-- ================================================================ -->
+<!-- PAGE: CUSTOMS CLEARANCE -->
+<!-- ================================================================ -->
+<div class="page" id="page-customs">
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="section-tag"><span class="lang-en" data-inline>Our Services</span><span class="lang-ar" data-inline>خدماتنا</span></div>
+      <h1 class="page-hero-title">
+        <span class="lang-en">Customs Clearance<br>&amp; Transportation</span>
+        <span class="lang-ar">التخليص الجمركي<br>والنقل</span>
+      </h1>
+      <div class="page-hero-sub"><span class="lang-en" data-inline>Port Said · All Egyptian Ports &amp; Airports</span><span class="lang-ar" data-inline>بور سعيد · جميع الموانئ والمطارات المصرية</span></div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="customs-content">
+      <div class="customs-text">
+        <h2 class="customs-title">
+          <span class="lang-en">Expert <span>Customs Clearance</span> Services in Egypt</span>
+          <span class="lang-ar">خدمات <span>التخليص الجمركي</span> المتخصصة في مصر</span>
+        </h2>
+        <p><span class="lang-en" data-inline>PANSEAS provides customs clearance services for goods from ports and airports. PANSEAS is distinguished by providing the best, cheapest and fastest customs clearance services in Egypt, facilitating customs procedures and creating customs exemptions.</span><span class="lang-ar" data-inline>تقدم بانسيز خدمات التخليص الجمركي للبضائع من الموانئ والمطارات. وتتميز بانسيز بتقديم أفضل وأرخص وأسرع خدمات التخليص الجمركي في مصر، وتيسير الإجراءات الجمركية وإنشاء الإعفاءات الجمركية.</span></p>
+        <p><span class="lang-en" data-inline>It is known that different countries have ports for entering goods, whether air, sea or land ports, and the goods entering these countries are examined and fees called customs duties are imposed on them.</span><span class="lang-ar" data-inline>من المعروف أن الدول المختلفة لديها موانئ لإدخال البضائع، سواء كانت جوية أو بحرية أو برية، وتخضع البضائع الداخلة للفحص وتُفرض عليها رسوم تُسمى الرسوم الجمركية.</span></p>
+        <p><span class="lang-en" data-inline>The owner or agent of the goods needs to perform the customs clearance process, which means submitting the required documents to facilitate import and export, and the owner or his agent is responsible for the goods during the examination, evaluation, payment of fees and receipt.</span><span class="lang-ar" data-inline>يحتاج صاحب البضاعة أو وكيله إلى تنفيذ عملية التخليص الجمركي، والتي تعني تقديم المستندات اللازمة لتسهيل الاستيراد والتصدير، ويكون الصاحب أو وكيله مسؤولاً عن البضاعة أثناء الفحص والتقييم وسداد الرسوم والاستلام.</span></p>
+        <p><span class="lang-en" data-inline>All shipments, whether import or export, need to fulfill the customs clearance procedures of each country. Customs clearance is an administrative procedure required to allow the entry or exit of certain goods to and from different countries, and it must be done by an approved customs broker.</span><span class="lang-ar" data-inline>جميع الشحنات، سواء كانت استيراداً أو تصديراً، تحتاج إلى استيفاء إجراءات التخليص الجمركي لكل دولة. التخليص الجمركي إجراء إداري مطلوب للسماح بدخول أو خروج بضائع معينة من وإلى دول مختلفة، ويجب أن يتم بواسطة وسيط جمركي معتمد.</span></p>
+        <div class="customs-images">
+          <img src="https://static.wixstatic.com/media/41d000_65f4100bf493b9c83da9fb06f1f5052e.jpg/v1/fill/w_300,h_300,al_c,lg_1,q_80,enc_avif,quality_auto/41d000_65f4100bf493b9c83da9fb06f1f5052e.jpg" alt="">
+          <img src="https://static.wixstatic.com/media/41d000_b5282e5b07e211cb3afb8af69b1227de.jpg/v1/fill/w_300,h_300,al_c,lg_1,q_80,enc_avif,quality_auto/41d000_b5282e5b07e211cb3afb8af69b1227de.jpg" alt="">
+          <img src="https://static.wixstatic.com/media/41d000_3eed4c24fb4cc84d49580b292e16c858.jpg/v1/fill/w_300,h_300,al_c,lg_1,q_80,enc_avif,quality_auto/41d000_3eed4c24fb4cc84d49580b292e16c858.jpg" alt="">
+        </div>
+      </div>
+      <div class="customs-sidebar">
+        <div class="info-card">
+          <div class="info-card-title"><span class="lang-en" data-inline>What We Clear</span><span class="lang-ar" data-inline>ما نخلصه</span></div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;">
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Sea Freight / Cargo</span><span class="lang-ar" data-inline>شحن بحري / بضاعة</span></li>
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Air Freight / Air Cargo</span><span class="lang-ar" data-inline>شحن جوي / بضاعة جوية</span></li>
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Land Freight</span><span class="lang-ar" data-inline>شحن بري</span></li>
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Import Shipments</span><span class="lang-ar" data-inline>شحنات استيراد</span></li>
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Export Shipments</span><span class="lang-ar" data-inline>شحنات تصدير</span></li>
+            <li style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:rgba(245,242,236,0.75);"><span style="color:var(--accent);font-size:0.7rem;">▶</span> <span class="lang-en" data-inline>Customs Exemptions</span><span class="lang-ar" data-inline>إعفاءات جمركية</span></li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title"><span class="lang-en" data-inline>Contact for Clearance</span><span class="lang-ar" data-inline>تواصل للتخليص</span></div>
+          <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);line-height:1.7;margin-bottom:16px;"><span class="lang-en" data-inline>Our team is ready to handle all your customs procedures quickly and professionally.</span><span class="lang-ar" data-inline>فريقنا مستعد لإنهاء جميع إجراءاتك الجمركية بسرعة واحترافية.</span></p>
+          <p style="font-size:0.82rem;color:rgba(245,242,236,0.6);margin-bottom:6px;">📞 +2066 332 4818</p>
+          <p style="font-size:0.82rem;color:rgba(245,242,236,0.6);margin-bottom:16px;">✉️ panseas@panseas.net</p>
+          <button class="btn-primary" style="width:100%;" onclick="showPage('contact')">
+            <span class="lang-en" data-inline>Request Service</span>
+            <span class="lang-ar" data-inline>اطلب الخدمة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-customs -->
+
+
+<!-- ================================================================ -->
+<!-- PAGE: SHIP CHANDLERS -->
+<!-- ================================================================ -->
+<div class="page" id="page-chandlers">
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="section-tag"><span class="lang-en" data-inline>Marine Supplies</span><span class="lang-ar" data-inline>توريدات بحرية</span></div>
+      <h1 class="page-hero-title"><span class="lang-en">Ship Chandlers</span><span class="lang-ar">تموين السفن</span></h1>
+      <div class="page-hero-sub"><span class="lang-en" data-inline>Services Provided — Port Said &amp; Suez Canal</span><span class="lang-ar" data-inline>الخدمات المقدمة — بور سعيد وقناة السويس</span></div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="section-tag"><span class="lang-en" data-inline>What We Supply</span><span class="lang-ar" data-inline>ما نوفره</span></div>
+    <h2 class="section-title"><span class="lang-en">Services Provided</span><span class="lang-ar">الخدمات المقدمة</span></h2>
+    <div class="section-divider"></div>
+    <div class="chandlers-grid">
+      <div class="chandler-card">
+        <img src="https://static.wixstatic.com/media/b8efd5_b6d9e2ff9c9d4fb8bdb6da0583a127b5~mv2.jpg/v1/fill/w_600,h_480,al_c,lg_1,q_80,enc_avif,quality_auto/download.jpg" alt="">
+        <div class="chandler-overlay">
+          <div class="chandler-line"></div>
+          <div class="chandler-name"><span class="lang-en">Deck &amp; Engine Stores</span><span class="lang-ar">مخازن الظهر والمحرك</span></div>
+          <div class="chandler-desc"><span class="lang-en" data-inline>Complete supply of deck and engine room stores including tools, spare parts, safety equipment, and consumables.</span><span class="lang-ar" data-inline>توريد كامل لمخازن الظهر وغرفة المحرك بما يشمل الأدوات وقطع الغيار ومعدات السلامة والمواد الاستهلاكية.</span></div>
+        </div>
+      </div>
+      <div class="chandler-card">
+        <img src="https://static.wixstatic.com/media/b8efd5_7cb0f5963f6f4185a22bb99f65536a26~mv2.jpg/v1/fill/w_600,h_480,al_c,lg_1,q_80,enc_avif,quality_auto/service1.jpg" alt="">
+        <div class="chandler-overlay">
+          <div class="chandler-line"></div>
+          <div class="chandler-name"><span class="lang-en">Provisions</span><span class="lang-ar">المؤن</span></div>
+          <div class="chandler-desc"><span class="lang-en" data-inline>Full range of dry provisions, bonded stores, and crew supplies delivered directly to your vessel at port.</span><span class="lang-ar" data-inline>مجموعة كاملة من المؤن الجافة والمخازن المعتمدة وإمدادات الطاقم تُسلَّم مباشرة لسفينتك في الميناء.</span></div>
+        </div>
+      </div>
+      <div class="chandler-card">
+        <img src="https://static.wixstatic.com/media/b8efd5_ce30c11720f541d9b48f0aebe6b53948~mv2.jpg/v1/fill/w_600,h_480,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Fresh-Provision-2.jpg" alt="">
+        <div class="chandler-overlay">
+          <div class="chandler-line"></div>
+          <div class="chandler-name"><span class="lang-en">Fresh Provisions</span><span class="lang-ar">المواد الطازجة</span></div>
+          <div class="chandler-desc"><span class="lang-en" data-inline>Daily fresh provisions including fruits, vegetables, meat, dairy, and bakery products sourced locally.</span><span class="lang-ar" data-inline>مواد طازجة يومية تشمل الفواكه والخضروات واللحوم والألبان والمخبوزات من مصادر محلية.</span></div>
+        </div>
+      </div>
+      <div class="chandler-card">
+        <img src="https://static.wixstatic.com/media/b8efd5_e1112a630aaf4dd8b7f4120073fbc55b~mv2.jpg/v1/fill/w_600,h_480,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/port_said_east1.jpg" alt="">
+        <div class="chandler-overlay">
+          <div class="chandler-line"></div>
+          <div class="chandler-name"><span class="lang-en">Seasonal Tabulation</span><span class="lang-ar">الجدولة الموسمية</span></div>
+          <div class="chandler-desc"><span class="lang-en" data-inline>Specialized seasonal tablulation and port services for vessels transiting the Suez Canal and Egyptian ports.</span><span class="lang-ar" data-inline>خدمات الجدولة الموسمية والميناء للسفن العابرة لقناة السويس والموانئ المصرية.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-mini">
+      <h3><span class="lang-en">Contact Us Here</span><span class="lang-ar">تواصل معنا</span></h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>First Name</span><span class="lang-ar" data-inline>الاسم الأول</span></label>
+          <input type="text" id="ch-fname">
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Last Name</span><span class="lang-ar" data-inline>الاسم الأخير</span></label>
+          <input type="text" id="ch-lname">
+        </div>
+      </div>
+      <div class="form-group">
+        <label><span class="lang-en" data-inline>Email</span><span class="lang-ar" data-inline>البريد الإلكتروني</span></label>
+        <input type="email" id="ch-email">
+      </div>
+      <button class="btn-primary" onclick="submitForm('ch-success')">
+        <span class="lang-en" data-inline>Send</span>
+        <span class="lang-ar" data-inline>إرسال</span>
+      </button>
+      <div class="form-success" id="ch-success">
+        <span class="lang-en" data-inline>✓ Thanks for submitting! We'll be in touch soon.</span>
+        <span class="lang-ar" data-inline>✓ شكراً لتواصلك! سنتصل بك قريباً.</span>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-chandlers -->
+
+
+<!-- ================================================================ -->
+<!-- PAGE: ABOUT US -->
+<!-- ================================================================ -->
+<div class="page" id="page-about">
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="section-tag"><span class="lang-en" data-inline>Who We Are</span><span class="lang-ar" data-inline>من نحن</span></div>
+      <h1 class="page-hero-title"><span class="lang-en">About PANSEAS</span><span class="lang-ar">عن بانسيز</span></h1>
+      <div class="page-hero-sub"><span class="lang-en" data-inline>Suez Canal · Port Said · All Egyptian Ports</span><span class="lang-ar" data-inline>قناة السويس · بور سعيد · جميع الموانئ المصرية</span></div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="about-full-grid">
+      <div class="about-full-text">
+        <div class="section-tag"><span class="lang-en" data-inline>Our Story</span><span class="lang-ar" data-inline>قصتنا</span></div>
+        <h2 class="section-title"><span class="lang-en">Recognized & Trusted in the Marine Industry</span><span class="lang-ar">معترف بها وموثوقة في الصناعة البحرية</span></h2>
+        <div class="section-divider"></div>
+        <p><span class="lang-en" data-inline>Panseas Shipping Agency was evolved into one of the major private agencies, fully recognized. We are proud of our expertise in Suez Canal and in all Egyptian ports.</span><span class="lang-ar" data-inline>تطورت وكالة بانسيز للشحن لتصبح إحدى الوكالات الخاصة الكبرى المعترف بها بالكامل. ونحن فخورون بخبرتنا في قناة السويس وجميع الموانئ المصرية.</span></p>
+        <p><span class="lang-en" data-inline>Our staff are trained to a high professional level able to handle and solve any problems that could arise. Assuring you of our prompt attention at all times, to all matters.</span><span class="lang-ar" data-inline>يتلقى موظفونا تدريباً على مستوى مهني عالٍ يُمكِّنهم من التعامل مع أي مشكلة قد تنشأ وحلها. نضمن لك اهتمامنا الفوري في جميع الأوقات بجميع الأمور.</span></p>
+        <p><span class="lang-en" data-inline>PANSEAS is one of the largest leading companies in providing shipping, customs clearance, import and export services, with a group of specialists in all fields and representatives in all customs ports across Egypt.</span><span class="lang-ar" data-inline>بانسيز إحدى أكبر الشركات الرائدة في تقديم خدمات الشحن والتخليص الجمركي والاستيراد والتصدير، مع مجموعة من المتخصصين في جميع المجالات وممثلين في جميع موانئ الجمارك عبر مصر.</span></p>
+        <div class="team-values">
+          <div class="value-item">
+            <div class="value-num">01</div>
+            <div class="value-content">
+              <h4><span class="lang-en" data-inline>Trained &amp; Professional Team</span><span class="lang-ar" data-inline>فريق مدرب ومحترف</span></h4>
+              <p><span class="lang-en" data-inline>Long years of experience in logistics services provided by our trained team to finish all papers, documents and provide technical and legal advice.</span><span class="lang-ar" data-inline>سنوات طويلة من الخبرة في خدمات اللوجستيات يقدمها فريقنا المدرب لإنهاء جميع الأوراق والوثائق وتقديم المشورة الفنية والقانونية.</span></p>
+            </div>
+          </div>
+          <div class="value-item">
+            <div class="value-num">02</div>
+            <div class="value-content">
+              <h4><span class="lang-en" data-inline>Safety of Goods</span><span class="lang-ar" data-inline>سلامة البضائع</span></h4>
+              <p><span class="lang-en" data-inline>We keep the goods in their original condition, clear them from customs, and deliver them to the customer without any damage, with prompt intervention.</span><span class="lang-ar" data-inline>نحافظ على البضائع في حالتها الأصلية ونخلصها من الجمارك ونسلمها للعميل دون أي تلف، مع التدخل الفوري.</span></p>
+            </div>
+          </div>
+          <div class="value-item">
+            <div class="value-num">03</div>
+            <div class="value-content">
+              <h4><span class="lang-en" data-inline>Multiple Shipping Services</span><span class="lang-ar" data-inline>خدمات شحن متعددة</span></h4>
+              <p><span class="lang-en" data-inline>Land, sea and air freight for various types of shipping and parcels, in addition to customs clearance, import and export services.</span><span class="lang-ar" data-inline>شحن بري وبحري وجوي لأنواع مختلفة من الشحنات، إضافةً إلى خدمات التخليص الجمركي والاستيراد والتصدير.</span></p>
+            </div>
+          </div>
+          <div class="value-item">
+            <div class="value-num">04</div>
+            <div class="value-content">
+              <h4><span class="lang-en" data-inline>Best Rates &amp; Transparency</span><span class="lang-ar" data-inline>أفضل الأسعار والشفافية</span></h4>
+              <p><span class="lang-en" data-inline>Best price offers with no additional expenses in order to give you the best price for shipping and clearing without detracting from quality.</span><span class="lang-ar" data-inline>أفضل عروض الأسعار دون أي نفقات إضافية لإعطائك أفضل سعر للشحن والتخليص دون المساس بالجودة.</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="about-aside">
+        <div class="suez-badge">
+          <span class="icon">⚓</span>
+          <h3><span class="lang-en">Suez Canal Specialists</span><span class="lang-ar">متخصصون في قناة السويس</span></h3>
+          <p><span class="lang-en" data-inline>We are proud of our deep expertise in Suez Canal operations and all Egyptian ports. Our team is trained at the highest professional level.</span><span class="lang-ar" data-inline>نحن فخورون بخبرتنا العميقة في عمليات قناة السويس وجميع الموانئ المصرية. فريقنا مدرب على أعلى مستوى مهني.</span></p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title"><span class="lang-en" data-inline>Our Location</span><span class="lang-ar" data-inline>موقعنا</span></div>
+          <p style="font-size:0.85rem;color:rgba(245,242,236,0.7);line-height:1.8;margin-bottom:12px;">
+            <strong style="color:var(--white);"><span class="lang-en" data-inline>Head Office:</span><span class="lang-ar" data-inline>المقر الرئيسي:</span></strong><br>
+            <span class="lang-en" data-inline>32 Palestine St., Port Said, Egypt</span><span class="lang-ar" data-inline>٣٢ شارع فلسطين، بور سعيد، مصر</span><br><br>
+            <strong style="color:var(--white);"><span class="lang-en" data-inline>Branch:</span><span class="lang-ar" data-inline>الفرع:</span></strong><br>
+            <span class="lang-en" data-inline>Elgomhoria St., Elgomhoria Tower</span><span class="lang-ar" data-inline>شارع الجمهورية، برج الجمهورية</span><br><br>
+            P.O Box: 397
+          </p>
+          <p style="font-size:0.82rem;color:rgba(245,242,236,0.6);">📞 +2066 332 4818 — 332 6393 — 332 3986</p>
+          <p style="font-size:0.82rem;color:rgba(245,242,236,0.6);">📠 +2066 332 4785</p>
+        </div>
+        <button class="btn-primary" style="width:100%;" onclick="showPage('contact')">
+          <span class="lang-en" data-inline>Contact Our Team</span>
+          <span class="lang-ar" data-inline>تواصل مع فريقنا</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-about -->
+
+
+<!-- ================================================================ -->
+<!-- PAGE: CONTACT US -->
+<!-- ================================================================ -->
+<div class="page" id="page-contact">
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="section-tag"><span class="lang-en" data-inline>Reach Us</span><span class="lang-ar" data-inline>ابلغنا</span></div>
+      <h1 class="page-hero-title"><span class="lang-en">Contact Us</span><span class="lang-ar">اتصل بنا</span></h1>
+      <div class="page-hero-sub"><span class="lang-en" data-inline>We're ready to assist you at all times</span><span class="lang-ar" data-inline>نحن مستعدون لمساعدتك في أي وقت</span></div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="section-tag"><span class="lang-en" data-inline>Our Details</span><span class="lang-ar" data-inline>بياناتنا</span></div>
+        <h2 class="section-title" style="font-size:1.8rem;"><span class="lang-en">Get In Touch</span><span class="lang-ar">تواصل معنا</span></h2>
+        <div class="section-divider"></div>
+        <div class="contact-detail">
+          <div class="contact-icon">📍</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Head Office</span><span class="lang-ar" data-inline>المقر الرئيسي</span></h4>
+            <p><span class="lang-en" data-inline>32 Palestine St., Port Said, Egypt. P.O Box: 397</span><span class="lang-ar" data-inline>٣٢ شارع فلسطين، بور سعيد، مصر. ص.ب: ٣٩٧</span></p>
+          </div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-icon">🏢</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Branch</span><span class="lang-ar" data-inline>الفرع</span></h4>
+            <p><span class="lang-en" data-inline>Elgomhoria St., Elgomhoria Tower, Port Said</span><span class="lang-ar" data-inline>شارع الجمهورية، برج الجمهورية، بور سعيد</span></p>
+          </div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-icon">📞</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Telephone</span><span class="lang-ar" data-inline>الهاتف</span></h4>
+            <p><a href="tel:+20663324818">+2066 332 4818</a><br><a href="tel:+20663326393">+2066 332 6393</a><br><a href="tel:+20663323986">+2066 332 3986</a></p>
+          </div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-icon">📠</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Fax</span><span class="lang-ar" data-inline>فاكس</span></h4>
+            <p>+2066 332 4785</p>
+          </div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-icon">✉️</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Email</span><span class="lang-ar" data-inline>البريد الإلكتروني</span></h4>
+            <p><a href="mailto:panseas@panseas.net">panseas@panseas.net</a></p>
+          </div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-icon">🌐</div>
+          <div class="contact-detail-content">
+            <h4><span class="lang-en" data-inline>Social Media</span><span class="lang-ar" data-inline>التواصل الاجتماعي</span></h4>
+            <p><a href="https://www.facebook.com/om.bm.12" target="_blank">Facebook</a></p>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form-card">
+        <div class="section-tag"><span class="lang-en" data-inline>Send a Message</span><span class="lang-ar" data-inline>أرسل رسالة</span></div>
+        <h3 style="font-family:var(--font-en-display);font-size:1.6rem;color:var(--white);margin-bottom:28px;"><span class="lang-en">How Can We Help You?</span><span class="lang-ar">كيف يمكننا مساعدتك؟</span></h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label><span class="lang-en" data-inline>First Name</span><span class="lang-ar" data-inline>الاسم الأول</span></label>
+            <input type="text">
+          </div>
+          <div class="form-group">
+            <label><span class="lang-en" data-inline>Last Name</span><span class="lang-ar" data-inline>الاسم الأخير</span></label>
+            <input type="text">
+          </div>
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Email Address</span><span class="lang-ar" data-inline>البريد الإلكتروني</span></label>
+          <input type="email">
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Phone Number</span><span class="lang-ar" data-inline>رقم الهاتف</span></label>
+          <input type="tel">
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Service Required</span><span class="lang-ar" data-inline>الخدمة المطلوبة</span></label>
+          <select>
+            <option value=""><span class="lang-en" data-inline>— Select a Service —</span><span class="lang-ar" data-inline>— اختر خدمة —</span></option>
+            <option><span class="lang-en" data-inline>Customs Clearance</span><span class="lang-ar" data-inline>تخليص جمركي</span></option>
+            <option><span class="lang-en" data-inline>Ship Chandlers</span><span class="lang-ar" data-inline>تموين سفن</span></option>
+            <option><span class="lang-en" data-inline>Shipping Agency</span><span class="lang-ar" data-inline>وكالة شحن</span></option>
+            <option><span class="lang-en" data-inline>Import / Export</span><span class="lang-ar" data-inline>استيراد / تصدير</span></option>
+            <option><span class="lang-en" data-inline>General Inquiry</span><span class="lang-ar" data-inline>استفسار عام</span></option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Message</span><span class="lang-ar" data-inline>الرسالة</span></label>
+          <textarea></textarea>
+        </div>
+        <button class="btn-primary" style="width:100%;" onclick="submitForm('ct-success')">
+          <span class="lang-en" data-inline>Submit</span>
+          <span class="lang-ar" data-inline>إرسال</span>
+        </button>
+        <div class="form-success" id="ct-success">
+          <span class="lang-en" data-inline>✓ Thanks for submitting! We'll get back to you shortly.</span>
+          <span class="lang-ar" data-inline>✓ شكراً لرسالتك! سنتواصل معك قريباً.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-contact -->
+
+
+<!-- ================================================================ -->
+<!-- PAGE: BOOK ONLINE -->
+<!-- ================================================================ -->
+<div class="page" id="page-book">
+  <div class="page-hero">
+    <div class="page-hero-content">
+      <div class="section-tag"><span class="lang-en" data-inline>Reserve a Service</span><span class="lang-ar" data-inline>احجز خدمة</span></div>
+      <h1 class="page-hero-title"><span class="lang-en">Book Online</span><span class="lang-ar">الحجز الإلكتروني</span></h1>
+      <div class="page-hero-sub"><span class="lang-en" data-inline>Quick &amp; easy service reservation</span><span class="lang-ar" data-inline>حجز سريع وسهل للخدمات</span></div>
+    </div>
+  </div>
+  <section class="section">
+    <div class="book-form-card">
+      <div class="section-tag"><span class="lang-en" data-inline>Service Booking</span><span class="lang-ar" data-inline>حجز الخدمة</span></div>
+      <h2 class="section-title" style="font-size:1.8rem;margin-bottom:8px;"><span class="lang-en">Request Our Services</span><span class="lang-ar">اطلب خدماتنا</span></h2>
+      <div class="section-divider"></div>
+      <p style="font-size:0.85rem;color:rgba(245,242,236,0.6);margin-bottom:30px;"><span class="lang-en" data-inline>Fill in the form below and our team will confirm your booking as soon as possible.</span><span class="lang-ar" data-inline>املأ النموذج أدناه وسيقوم فريقنا بتأكيد حجزك في أقرب وقت ممكن.</span></p>
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>First Name *</span><span class="lang-ar" data-inline>الاسم الأول *</span></label>
+          <input type="text">
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Last Name *</span><span class="lang-ar" data-inline>الاسم الأخير *</span></label>
+          <input type="text">
+        </div>
+      </div>
+      <div class="form-group">
+        <label><span class="lang-en" data-inline>Email Address *</span><span class="lang-ar" data-inline>البريد الإلكتروني *</span></label>
+        <input type="email">
+      </div>
+      <div class="form-group">
+        <label><span class="lang-en" data-inline>Phone / WhatsApp</span><span class="lang-ar" data-inline>الهاتف / واتساب</span></label>
+        <input type="tel">
+      </div>
+      <div class="form-group">
+        <label><span class="lang-en" data-inline>Service Type *</span><span class="lang-ar" data-inline>نوع الخدمة *</span></label>
+        <select>
+          <option value=""></option>
+          <option><span class="lang-en" data-inline>Customs Clearance</span></option>
+          <option><span class="lang-en" data-inline>Ship Chandlers — Deck &amp; Engine Stores</span></option>
+          <option><span class="lang-en" data-inline>Ship Chandlers — Provisions</span></option>
+          <option><span class="lang-en" data-inline>Ship Chandlers — Fresh Provisions</span></option>
+          <option><span class="lang-en" data-inline>Seasonal Tabulation</span></option>
+          <option><span class="lang-en" data-inline>Shipping Agency</span></option>
+          <option><span class="lang-en" data-inline>Import / Export</span></option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Preferred Date</span><span class="lang-ar" data-inline>التاريخ المفضل</span></label>
+          <input type="date">
+        </div>
+        <div class="form-group">
+          <label><span class="lang-en" data-inline>Vessel / Cargo Name</span><span class="lang-ar" data-inline>اسم السفينة / البضاعة</span></label>
+          <input type="text">
+        </div>
+      </div>
+      <div class="form-group">
+        <label><span class="lang-en" data-inline>Additional Details</span><span class="lang-ar" data-inline>تفاصيل إضافية</span></label>
+        <textarea></textarea>
+      </div>
+      <button class="btn-primary" style="width:100%;font-size:1rem;padding:16px;" onclick="submitForm('bk-success')">
+        <span class="lang-en" data-inline>Confirm Booking</span>
+        <span class="lang-ar" data-inline>تأكيد الحجز</span>
+      </button>
+      <div class="form-success" id="bk-success">
+        <span class="lang-en" data-inline>✓ Booking request received! Our team will confirm within 24 hours.</span>
+        <span class="lang-ar" data-inline>✓ تم استلام طلب الحجز! سيقوم فريقنا بالتأكيد خلال 24 ساعة.</span>
+      </div>
+      <p style="font-size:0.78rem;color:rgba(245,242,236,0.3);text-align:center;margin-top:20px;letter-spacing:1px;">
+        📞 +2066 332 4818 · panseas@panseas.net
+      </p>
+    </div>
+  </section>
+</div><!-- /page-book -->
+
+
+<!-- ================================================================ -->
+<!-- FOOTER -->
+<!-- ================================================================ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-logo">PAN<span>SEAS</span></div>
+      <p class="footer-about"><span class="lang-en" data-inline>One of the largest leading companies in providing shipping, customs clearance, import and export services in Egypt. Fully recognized in the Suez Canal and all Egyptian ports.</span><span class="lang-ar" data-inline>إحدى أكبر الشركات الرائدة في تقديم خدمات الشحن والتخليص الجمركي والاستيراد والتصدير في مصر. معترف بها في قناة السويس وجميع الموانئ المصرية.</span></p>
+      <div class="footer-social">
+        <a href="https://www.facebook.com/om.bm.12" target="_blank" class="social-btn">f</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4><span class="lang-en" data-inline>Quick Links</span><span class="lang-ar" data-inline>روابط سريعة</span></h4>
+      <ul class="footer-links">
+        <li><a onclick="showPage('home')"><span class="lang-en" data-inline>Home</span><span class="lang-ar" data-inline>الرئيسية</span></a></li>
+        <li><a onclick="showPage('customs')"><span class="lang-en" data-inline>Customs Clearance</span><span class="lang-ar" data-inline>التخليص الجمركي</span></a></li>
+        <li><a onclick="showPage('chandlers')"><span class="lang-en" data-inline>Ship Chandlers</span><span class="lang-ar" data-inline>تموين السفن</span></a></li>
+        <li><a onclick="showPage('about')"><span class="lang-en" data-inline>About Us</span><span class="lang-ar" data-inline>من نحن</span></a></li>
+        <li><a onclick="showPage('contact')"><span class="lang-en" data-inline>Contact Us</span><span class="lang-ar" data-inline>اتصل بنا</span></a></li>
+        <li><a onclick="showPage('book')"><span class="lang-en" data-inline>Book Online</span><span class="lang-ar" data-inline>احجز الآن</span></a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4><span class="lang-en" data-inline>Contact</span><span class="lang-ar" data-inline>التواصل</span></h4>
+      <ul class="footer-contact-items">
+        <li><span>📍</span><span><span class="lang-en" data-inline>32 Palestine St., Port Said. P.O Box 397</span><span class="lang-ar" data-inline>٣٢ شارع فلسطين، بور سعيد. ص.ب ٣٩٧</span></span></li>
+        <li><span>📞</span><span>+2066 332 4818 / 6393 / 3986</span></li>
+        <li><span>📠</span><span>+2066 332 4785</span></li>
+        <li><span>✉️</span><span>panseas@panseas.net</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy"><span class="lang-en" data-inline>© 2024 PANSEAS Shipping & Logistics · Port Said, Egypt</span><span class="lang-ar" data-inline>© ٢٠٢٤ بانسيز للشحن واللوجستيات · بور سعيد، مصر</span></div>
+    <div class="footer-copy"><span class="lang-en" data-inline>Suez Canal | All Egyptian Ports</span><span class="lang-ar" data-inline>قناة السويس | جميع الموانئ المصرية</span></div>
+  </div>
+</footer>
+
+<script>
+  // ===== PAGE SYSTEM =====
+  const pages = ['home','customs','chandlers','about','contact','book'];
+
+  function showPage(name) {
+    pages.forEach(p => {
+      document.getElementById('page-' + p).classList.remove('active');
+      const nav = document.getElementById('nav-' + p);
+      if (nav) nav.classList.remove('active');
+    });
+    document.getElementById('page-' + name).classList.add('active');
+    const nav = document.getElementById('nav-' + name);
+    if (nav) nav.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('navLinks').classList.remove('open');
+    setTimeout(triggerReveal, 150);
+  }
+
+  function toggleMenu() {
+    document.getElementById('navLinks').classList.toggle('open');
+  }
+
+  function submitForm(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 5000); }
+  }
+
+  function triggerReveal() {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+  }
+
+  // ===== LANGUAGE SYSTEM =====
+  let currentLang = 'en';
+
+  function toggleLanguage() {
+    const overlay = document.getElementById('langTransition');
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      currentLang = currentLang === 'en' ? 'ar' : 'en';
+      const html = document.getElementById('htmlRoot');
+      const btn = document.getElementById('langToggle');
+      const flag = document.getElementById('toggleFlag');
+      const label = document.getElementById('toggleLabel');
+
+      if (currentLang === 'ar') {
+        html.setAttribute('lang', 'ar');
+        html.setAttribute('dir', 'rtl');
+        btn.setAttribute('data-tooltip', 'Switch to English');
+        flag.textContent = '🇬🇧';
+        label.textContent = 'EN';
+        document.title = 'بانسيز | الشحن واللوجستيات';
+      } else {
+        html.setAttribute('lang', 'en');
+        html.setAttribute('dir', 'ltr');
+        btn.setAttribute('data-tooltip', 'Switch to Arabic');
+        flag.textContent = '🇪🇬';
+        label.textContent = 'عربي';
+        document.title = 'PANSEAS | Logistics & Shipping';
+      }
+
+      overlay.classList.remove('active');
+      triggerReveal();
+    }, 250);
+  }
+
+  // ===== PARTICLES =====
+  function createParticles() {
+    const c = document.getElementById('particles');
+    if (!c) return;
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.classList.add('particle');
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      const s = (Math.random() * 3 + 1) + 'px';
+      p.style.width = s; p.style.height = s;
+      c.appendChild(p);
+    }
+  }
+
+  // Intersection observer
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  createParticles();
+  triggerReveal();
+</script>
+</body>
+</html>
