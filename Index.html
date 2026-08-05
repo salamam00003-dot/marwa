@@ -832,38 +832,6 @@
             }
         }
 
-        // ─── فحص الاتصال بالسرفير ──────────────────────────────────────────
-        // يتحقق من إمكانية الوصول للـ CLOUD_URL ويحدّث مؤشر الاتصال في الواجهة
-        // ولا تُتاح إضافة/تعديل الحجوزات إلا عندما يكون الاتصال متوفراً
-        let _connCheckInFlight = false;
-        function updateConnectionStatus(isConnected) {
-            const changed = state.isServerConnected !== isConnected;
-            state.isServerConnected = isConnected;
-            // حدّث الواجهة (أيقونة الاتصال بجانب زر الخروج + زر الحجز الجديد) عند تغيّر حالة الاتصال فقط
-            if (changed && state.isLoggedIn && document.getElementById('app').style.display !== 'none') {
-                render();
-            }
-        }
-
-        async function checkServerConnection() {
-            if (!CLOUD_URL) { updateConnectionStatus(false); return; }
-            // لو المزامنة شغالة دلوقتي، متعملش فحص منفصل (تجنبًا لتضارب الطلبات على نفس الرابط)
-            if (state.isSyncing) return;
-            if (_connCheckInFlight) return;
-            _connCheckInFlight = true;
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
-                const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`, { signal: controller.signal, cache: 'no-store' });
-                clearTimeout(timeoutId);
-                updateConnectionStatus(!!res.ok);
-            } catch (e) {
-                updateConnectionStatus(false);
-            } finally {
-                _connCheckInFlight = false;
-            }
-        }
-
         // ─── Default Employee Name Based on Logged-in User ────────────────
         const DEFAULT_EMPLOYEE_BY_EMAIL = {
             "salama.m@gmail.com": "محمد عبد السلام",
@@ -904,7 +872,6 @@
             currentYear: new Date().getFullYear(),
             editingBookingId: null,
             isSyncing: false,
-            isServerConnected: false,
             // --- Race condition fix ---
             // يُزاد بمقدار 1 في كل عملية حذف/تعديل قبل أي fetch
             // الـ syncToCloud يتحقق منه بعد الـ fetch: لو تغيّر = فيه عملية أحدث → يتوقف
@@ -916,10 +883,6 @@
         // --- Core Functions ---
         window.onload = () => {
             init();
-            checkServerConnection();
-            setInterval(checkServerConnection, 20000);
-            window.addEventListener('online', checkServerConnection);
-            window.addEventListener('offline', () => updateConnectionStatus(false));
             setInterval(autoSync, SYNC_INTERVAL);
             // Close sync dropdown on outside click
             document.addEventListener('click', function(e) {
@@ -1012,12 +975,12 @@
         }
 
         async function syncToCloud(isSilent = false) {
-            if (!CLOUD_URL) return false;
+            if (!CLOUD_URL) return;
 
             // لو في مزامنة جارية، ضع علامة "ينتظر" واخرج
             if (state.isSyncing) {
                 state._syncPending = true;
-                return false;
+                return;
             }
 
             state.isSyncing = true;
@@ -1026,7 +989,6 @@
 
             // سجّل نسخة العمليات الحالية قبل أي fetch
             const opsVersionAtStart = state._opsVersion;
-            let syncSucceeded = false;
 
             try {
                 const dirtyBookings     = state.bookings.filter(b => b._isDirty);
@@ -1043,9 +1005,9 @@
                 if (state._opsVersion !== opsVersionAtStart) {
                     state.isSyncing = false;
                     state._syncPending = true;
-                    // ابدأ دورة جديدة بعد تأخير قصير وانتظر نتيجتها الفعلية
-                    await new Promise(r => setTimeout(r, 500));
-                    return await syncToCloud(isSilent);
+                    // ابدأ دورة جديدة بعد تأخير قصير
+                    setTimeout(() => syncToCloud(isSilent), 500);
+                    return;
                 }
 
                 const serverData = await readResponse.json();
@@ -1055,8 +1017,8 @@
                 if (state._opsVersion !== opsVersionAtStart) {
                     state.isSyncing = false;
                     state._syncPending = true;
-                    await new Promise(r => setTimeout(r, 500));
-                    return await syncToCloud(isSilent);
+                    setTimeout(() => syncToCloud(isSilent), 500);
+                    return;
                 }
 
                 const serverBookings = serverData.bookings || [];
@@ -1111,8 +1073,8 @@
                     if (state._opsVersion !== opsVersionAtStart) {
                         state.isSyncing = false;
                         state._syncPending = true;
-                        await new Promise(r => setTimeout(r, 800));
-                        return await syncToCloud(isSilent);
+                        setTimeout(() => syncToCloud(isSilent), 800);
+                        return;
                     }
 
                 } else {
@@ -1176,14 +1138,10 @@
                 }
 
                 if (!isSilent) showSync("تمت المزامنة بنجاح ✓");
-                updateConnectionStatus(true);
-                syncSucceeded = true;
 
             } catch (e) {
                 console.error("Sync Error:", e);
                 if (!isSilent) showSync("فشل المزامنة: " + e.message, true);
-                updateConnectionStatus(false);
-                syncSucceeded = false;
             }
 
             state.isSyncing = false;
@@ -1194,8 +1152,6 @@
                 state._syncPending = false;
                 setTimeout(() => syncToCloud(true), 300);
             }
-
-            return syncSucceeded;
         }
 
         function mergeLogs(localLogs, serverLogs) {
@@ -1224,13 +1180,13 @@
             await syncToCloud(isSilent);
         }
 
-        async function saveLocal() {
+        function saveLocal() {
             // ارفع العداد أولاً — يُبطل أي دورة مزامنة جارية كانت بدأت قبل هذه العملية
             state._opsVersion++;
             localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
             localStorage.setItem('hotel_logs_local', JSON.stringify(state.activityLogs));
             localStorage.setItem('hotel_deleted_ids', JSON.stringify(state.pendingDeletions));
-            return await syncToCloud();
+            syncToCloud();
         }
 
         function saveLocalStateOnly() {
@@ -1254,39 +1210,6 @@
             if(state.notifications.length > 50) state.notifications.pop();
             localStorage.setItem('hotel_notifications', JSON.stringify(state.notifications));
             renderHeader(); // Refresh header to show badge
-        }
-
-        // يحوّل زر الحفظ داخل الفورم إلى حالة "جاري الحفظ" مع أيقونة دوّارة، أو يعيده لحالته الطبيعية
-        function setFormSaving(form, saving, savingText = 'جاري الحفظ...') {
-            const btn = form && form.querySelector('button[type="submit"]');
-            if (!btn) return;
-            if (saving) {
-                if (btn.dataset.origHtml === undefined) btn.dataset.origHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.classList.add('opacity-70', 'cursor-not-allowed');
-                btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>${savingText}</span>`;
-                if (typeof lucide !== "undefined") lucide.createIcons();
-            } else {
-                btn.disabled = false;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                if (btn.dataset.origHtml !== undefined) {
-                    btn.innerHTML = btn.dataset.origHtml;
-                    delete btn.dataset.origHtml;
-                    if (typeof lucide !== "undefined") lucide.createIcons();
-                }
-            }
-        }
-
-        // يستبدل أزرار تأكيد الحذف بمؤشر "جاري الحذف" أثناء انتظار المزامنة
-        function setDeleteConfirmSaving(saving, text = 'جاري الحذف...') {
-            const btnsEl = document.getElementById('deleteConfirmButtons');
-            if (!btnsEl || !saving) return;
-            btnsEl.innerHTML = `
-                <div class="w-full py-3.5 flex items-center justify-center gap-2 text-sm font-black text-slate-500">
-                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
-                    <span>${text}</span>
-                </div>`;
-            if (typeof lucide !== "undefined") lucide.createIcons();
         }
 
         function showToast(message, type, bookingDate) {
@@ -1616,7 +1539,7 @@
             });
         }
 
-        async function handleBookingSubmit(e) {
+        function handleBookingSubmit(e) {
             e.preventDefault();
             const form = e.target;
             const isEditing = !!state.editingBookingId;
@@ -1743,6 +1666,7 @@
             const logMsg = 'تم ' + logType + ' حجز - ' + bookingData.companyName + ' - بتاريخ ' + _fmtD1;
 
             addNotification(logMsg, 'add', bookingData.startDate);
+            showToast(logMsg, 'success', bookingData.startDate);
 
             state.activityLogs.unshift({
                 type:         logType,
@@ -1755,14 +1679,7 @@
             });
 
             state.editingBookingId = null;
-            setFormSaving(form, true);
-            const synced = await saveLocal();
-            setFormSaving(form, false);
-            if (synced) {
-                showToast(logMsg, 'success', bookingData.startDate);
-            } else {
-                showToast(logMsg + ' (تم الحفظ محلياً فقط، وسيتم رفعه للسحابة عند توفر الاتصال)', 'error', bookingData.startDate);
-            }
+            saveLocal();
             state.activeTab = 'calendar';
             render();
         }
@@ -1834,10 +1751,10 @@
             document.getElementById('deleteConfirmModal').classList.add('hidden');
         }
 
-        async function confirmDeleteOneDay(id) {
+        function confirmDeleteOneDay(id) {
+            closeDeleteConfirmModal();
             const booking = state.bookings.find(b => b.id === id);
-            if (!booking) { closeDeleteConfirmModal(); return; }
-            setDeleteConfirmSaving(true, 'جاري حذف اليوم...');
+            if (!booking) return;
 
             state.pendingDeletions.push(id);
             state.bookings = state.bookings.filter(b => b.id !== id);
@@ -1849,6 +1766,7 @@
             const logMsg = 'تم حذف يوم من حجز - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
 
             addNotification(logMsg, 'delete', booking.startDate);
+            showToast(logMsg, 'error');
 
             state.activityLogs.unshift({
                 type:         'حذف',
@@ -1860,9 +1778,7 @@
                 isoTimestamp: new Date().toISOString()
             });
 
-            const synced = await saveLocal();
-            closeDeleteConfirmModal();
-            showToast(synced ? logMsg : logMsg + ' (حذف محلي، سيتم رفعه للسحابة عند توفر الاتصال)', 'error');
+            saveLocal();
             render();
 
             const detailsModal = document.getElementById('detailsModal');
@@ -1877,10 +1793,10 @@
             }
         }
 
-        async function confirmDeleteAllDays(id, groupId) {
+        function confirmDeleteAllDays(id, groupId) {
+            closeDeleteConfirmModal();
             const booking = state.bookings.find(b => b.id === id);
-            if (!booking) { closeDeleteConfirmModal(); return; }
-            setDeleteConfirmSaving(true, 'جاري حذف الحجز...');
+            if (!booking) return;
 
             const groupDays = state.bookings.filter(b => b.groupId === groupId || b.id === groupId);
             const toDeleteIds = groupDays.map(b => b.id);
@@ -1894,6 +1810,7 @@
             const logMsg = 'تم إلغاء الحجز بالكامل - ' + booking.companyName + ' - بتاريخ ' + _fmtDel;
 
             addNotification(logMsg, 'delete', booking.startDate);
+            showToast(logMsg, 'error');
 
             state.activityLogs.unshift({
                 type:         'حذف',
@@ -1905,9 +1822,7 @@
                 isoTimestamp: new Date().toISOString()
             });
 
-            const synced = await saveLocal();
-            closeDeleteConfirmModal();
-            showToast(synced ? logMsg : logMsg + ' (حذف محلي، سيتم رفعه للسحابة عند توفر الاتصال)', 'error');
+            saveLocal();
             render();
 
             const detailsModal = document.getElementById('detailsModal');
@@ -2307,7 +2222,7 @@ ${notesDisplay ? `
 
                         <div class="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end">
                             <!-- زر حجز جديد -->
-                            <button onclick="toggleGlobalBookingModal()" class="fab-new-booking mr-1 sm:mr-4 shrink-0 w-10 h-10 sm:w-[42px] sm:h-[42px] ${!state.isServerConnected ? 'opacity-40 grayscale' : ''}" title="${state.isServerConnected ? 'إضافة حجز جديد' : 'غير متصل بالسرفير - لا يمكن إضافة حجز'}">
+                            <button onclick="toggleGlobalBookingModal()" class="fab-new-booking mr-1 sm:mr-4 shrink-0 w-10 h-10 sm:w-[42px] sm:h-[42px]" title="إضافة حجز جديد">
                                 <i data-lucide="plus" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                             </button>
 
@@ -2355,12 +2270,7 @@ ${notesDisplay ? `
                             ` : ''}
 
                             <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
-
-                            <div id="connection-indicator" class="flex flex-col items-center justify-center gap-0.5 shrink-0 px-1" title="${state.isServerConnected ? 'متصل بالسرفير' : 'غير متصل بالسرفير'}">
-                                <i data-lucide="${state.isServerConnected ? 'wifi' : 'wifi-off'}" class="w-4 h-4 sm:w-5 sm:h-5 ${state.isServerConnected ? 'text-emerald-600' : 'text-red-600'}"></i>
-                                <span id="connection-text" class="text-[9px] sm:text-[10px] font-bold leading-none ${state.isServerConnected ? 'text-emerald-700' : 'text-red-700'}">${state.isServerConnected ? 'متصل' : 'غير متصل'}</span>
-                            </div>
-
+                            
                             <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
                                 <span class="hidden sm:inline">خروج</span>
                                 <i data-lucide="log-out" class="w-5 h-5"></i>
@@ -2656,10 +2566,6 @@ ${notesDisplay ? `
 
         // ─── Open New Booking Modal Pre-filled for a Specific Date ───────
         function openNewBookingForDate(dateStr) {
-            if (!state.isServerConnected) {
-                alert('لا يمكن إضافة حجز الآن — التطبيق غير متصل بالسرفير.');
-                return;
-            }
             state.editingBookingId = null;
 
             // القاعة تُحذف من القائمة فقط إذا كانت محجوزة يوم كامل (بدون توقيت)
@@ -2702,10 +2608,6 @@ ${notesDisplay ? `
 
         // ─── Global New Booking Modal ─────────────────────────────────────
         function openGlobalBookingForEdit(id, groupId) {
-            if (!state.isServerConnected) {
-                alert('لا يمكن تعديل الحجز الآن — التطبيق غير متصل بالسرفير.');
-                return;
-            }
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
@@ -2764,10 +2666,6 @@ ${notesDisplay ? `
             if (!modal) return;
 
             if (modal.classList.contains('hidden')) {
-                if (!state.isServerConnected) {
-                    alert('لا يمكن إضافة حجز الآن — التطبيق غير متصل بالسرفير.');
-                    return;
-                }
                 state.editingBookingId = null;
                 const select = document.getElementById('globalHallSelect');
                 select.innerHTML = '<option value="">-- يرجى تحديد القاعة --</option>' +
@@ -2793,12 +2691,8 @@ ${notesDisplay ? `
             }
         }
 
-        async function handleGlobalBookingSubmit(e) {
+        function handleGlobalBookingSubmit(e) {
             e.preventDefault();
-            if (!state.isServerConnected) {
-                alert('لا يمكن حفظ الحجز حالياً — التطبيق غير متصل بالسرفير.');
-                return;
-            }
             const form   = e.target;
             const hallId = form.hallId.value;
             const hall   = HALLS.find(h => h.id === hallId);
@@ -2928,6 +2822,7 @@ ${notesDisplay ? `
             const _fmtD2 = bookingData.startDate ? bookingData.startDate.split('-').reverse().join('/') : '';
             const logMsg  = 'تم ' + logType + ' حجز - ' + bookingData.companyName + ' - بتاريخ ' + _fmtD2;
             addNotification(logMsg, 'add', bookingData.startDate);
+            showToast(logMsg, 'success', bookingData.startDate);
 
             state.activityLogs.unshift({
                 type:         logType,
@@ -2940,14 +2835,7 @@ ${notesDisplay ? `
             });
 
             state.editingBookingId = null;
-            setFormSaving(form, true);
-            const synced = await saveLocal();
-            setFormSaving(form, false);
-            if (synced) {
-                showToast(logMsg, 'success', bookingData.startDate);
-            } else {
-                showToast(logMsg + ' (تم الحفظ محلياً فقط، وسيتم رفعه للسحابة عند توفر الاتصال)', 'error', bookingData.startDate);
-            }
+            saveLocal();
             toggleGlobalBookingModal();
             render();
         }
