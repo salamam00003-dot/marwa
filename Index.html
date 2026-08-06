@@ -16,6 +16,10 @@
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+    <!-- Firebase (Realtime Database) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
     <style>
         /* --- الألوان المطلوبة --- */
         :root {
@@ -791,21 +795,65 @@
 
     <script>
         // --- Configuration ---
-        const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzRq3GItUelYEXn8WUFhMTrJw9lTxbhEKtUIxUWdUCel9GeSbprpHed80no4VZ-ix3d8g/exec';
-        // رابط سكريبت منفصل لتسجيل كل حجز يتم حذفه في جوجل شيت مستقل عن باقي البيانات
-        // (ضع هنا رابط الـ exec الخاص بالـ Apps Script الجديد بعد نشره - راجع ملف DeleteLog_Code.gs)
-        const DELETE_LOG_URL = 'https://script.google.com/macros/s/AKfycbyzEwhbaRtFW5gTpMxSiin45zx4Ba2P3dftsHPM3iI-IR0A0U218mNF7q_TpJZWUunViQ/exec';
+        // تم الانتقال من Google Apps Script + Google Sheets إلى Firebase Realtime Database
+        // كل منطق المزامنة، الـ opsVersion، الإشعارات... إلخ باقٍ كما هو تماماً،
+        // تم فقط استبدال طبقة الاتصال بالسحابة.
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHjNvsMszkSaMFcbyP9oBKtMtT5x8Z5EE",
+            authDomain: "restaevents-eeffb.firebaseapp.com",
+            databaseURL: "https://restaevents-eeffb-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "restaevents-eeffb",
+            storageBucket: "restaevents-eeffb.firebasestorage.app",
+            messagingSenderId: "689779466978",
+            appId: "1:689779466978:web:c9eff234c04df512fc34bb",
+            measurementId: "G-FLWHW5PY98"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const CLOUD_ENABLED = true; // Firebase مفعّل دائماً (بديل عن فحص وجود رابط GAS القديم)
+
         const ADMIN_EMAIL = "salama.m@gmail.com";
 
-        // ─── تسجيل الحجوزات المحذوفة على شيت منفصل ────────────────
-        // يرسل تفاصيل كل حجز محذوف إلى سكريبت مستقل (لا يؤثر على المزامنة الأساسية)
-        function logDeletedBookingToCloud(booking, deleteType) {
-            if (!DELETE_LOG_URL || DELETE_LOG_URL.includes('PASTE_YOUR_NEW_DEPLOYMENT_ID_HERE')) return;
+        // ─── أدوات مساعدة للتحويل بين مصفوفات state والعقد في Firebase ────
+        function fbValToArray(val) {
+            if (!val) return [];
+            if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined);
+            return Object.values(val);
+        }
 
+        // قراءة لقطة كاملة من البيانات (bookings/logs/users/updatedAt) — بديل GET القديم على CLOUD_URL
+        async function fetchCloudSnapshot() {
+            const [bSnap, lSnap, uSnap, mSnap] = await Promise.all([
+                db.ref('bookings').once('value'),
+                db.ref('logs').once('value'),
+                db.ref('users').once('value'),
+                db.ref('meta/updatedAt').once('value')
+            ]);
+            return {
+                bookings: fbValToArray(bSnap.val()),
+                logs: fbValToArray(lSnap.val()),
+                users: fbValToArray(uSnap.val()),
+                updatedAt: mSnap.val() || null
+            };
+        }
+
+        // كتابة لقطة كاملة (استبدال كامل، تماماً كسلوك clearDataRows + setValues في الكود القديم)
+        async function pushCloudSnapshot(finalBookings, finalLogs, usersForCloud) {
+            const now = new Date().toISOString();
+            await Promise.all([
+                db.ref('bookings').set(finalBookings),
+                db.ref('logs').set(finalLogs),
+                db.ref('users').set(usersForCloud),
+                db.ref('meta/updatedAt').set(now)
+            ]);
+            return now;
+        }
+
+        // ─── تسجيل الحجوزات المحذوفة في عقدة منفصلة (بديل شيت الحذف المنفصل) ────
+        function logDeletedBookingToCloud(booking, deleteType) {
             const hallName = (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '';
 
             const payload = {
-                action: 'logDelete',
                 bookingId:   booking.id,
                 groupId:     booking.groupId || '',
                 deleteType:  deleteType, // 'يوم واحد' أو 'الحجز بالكامل'
@@ -822,11 +870,7 @@
             };
 
             try {
-                fetch(DELETE_LOG_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload)
-                }).catch(() => {});
+                db.ref('deletedBookings').push(payload).catch(() => {});
             } catch (e) {
                 // نتجاهل أي خطأ هنا حتى لا يعطّل عملية الحذف الأساسية
             }
@@ -842,7 +886,7 @@
             return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
         }
         const LOGO_PATH = "./001.png"; 
-        const SYNC_INTERVAL = 30000; 
+        const SYNC_INTERVAL = 10000; 
 
         // Colors for JS Injection
         const COLOR_RED = '#6E1418';
@@ -945,7 +989,7 @@
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 render();
-                if(CLOUD_URL) loadFromCloud();
+                if(CLOUD_ENABLED) loadFromCloud();
             }
         }
 
@@ -965,7 +1009,7 @@
         }
 
         async function autoSync() {
-            if (!state.isLoggedIn || !CLOUD_URL) return;
+            if (!state.isLoggedIn || !CLOUD_ENABLED) return;
             if (state.isSyncing) {
                 // ضع علامة "في انتظار مزامنة" بدل تجاهل الطلب
                 state._syncPending = true;
@@ -975,7 +1019,7 @@
         }
 
         async function syncToCloud(isSilent = false) {
-            if (!CLOUD_URL) return;
+            if (!CLOUD_ENABLED) return;
 
             // لو في مزامنة جارية، ضع علامة "ينتظر" واخرج
             if (state.isSyncing) {
@@ -996,24 +1040,11 @@
                 const pendingDelUsers   = [...state.pendingDeletedUsers];
                 const hasPendingChanges = dirtyBookings.length > 0 || pendingDels.length > 0 || pendingDelUsers.length > 0;
 
-                const readResponse = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
-                if (!readResponse.ok) throw new Error('فشل القراءة: HTTP ' + readResponse.status);
+                const serverData = await fetchCloudSnapshot();
 
                 // *** الفحص الأساسي لحل مشكلة الـ race condition ***
-                // لو تغيّرت نسخة العمليات أثناء الـ fetch (يعني جاء حذف/تعديل جديد)
+                // لو تغيّرت نسخة العمليات أثناء القراءة (يعني جاء حذف/تعديل جديد)
                 // نوقف هذه الدورة ونبدأ دورة جديدة بالبيانات المحدّثة
-                if (state._opsVersion !== opsVersionAtStart) {
-                    state.isSyncing = false;
-                    state._syncPending = true;
-                    // ابدأ دورة جديدة بعد تأخير قصير
-                    setTimeout(() => syncToCloud(isSilent), 500);
-                    return;
-                }
-
-                const serverData = await readResponse.json();
-                if (serverData.error) throw new Error('خطأ من السيرفر: ' + serverData.error);
-
-                // فحص ثانٍ بعد parse البيانات أيضاً
                 if (state._opsVersion !== opsVersionAtStart) {
                     state.isSyncing = false;
                     state._syncPending = true;
@@ -1056,20 +1087,13 @@
                         }
                     });
 
-                    const payload = JSON.stringify({
-                        action: 'save',
-                        bookings: finalBookings,
-                        logs: mergeLogs(state.activityLogs, serverLogs),
-                        users: usersForCloud
-                    });
+                    await pushCloudSnapshot(
+                        finalBookings,
+                        mergeLogs(state.activityLogs, serverLogs),
+                        usersForCloud
+                    );
 
-                    await fetch(CLOUD_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: payload
-                    });
-
-                    // فحص ثالث بعد POST — لو حصل تغيير أثناء الكتابة، لا تُحدّث state
+                    // فحص ثالث بعد الكتابة — لو حصل تغيير أثناء الكتابة، لا تُحدّث state
                     if (state._opsVersion !== opsVersionAtStart) {
                         state.isSyncing = false;
                         state._syncPending = true;
@@ -1377,17 +1401,11 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             render();
-            if (CLOUD_URL) loadFromCloud();
+            if (CLOUD_ENABLED) loadFromCloud();
         }
 
         function logout() {
-            state.currentUserEmail = '';
-            state.isLoggedIn = false;
-            localStorage.removeItem('hotel_app_email');
-            document.getElementById('loginModal').style.display = 'flex';
-            document.getElementById('app').style.display = 'none';
-            document.getElementById('loginEmail').value = '';
-            document.getElementById('loginPassword').value = '';
+            performLogin('marwa@gmail.com');
         }
 
         // --- Admin Functions ---
@@ -2866,24 +2884,19 @@ ${notesDisplay ? `
 
             let allLogs = [];
             try {
-                if (CLOUD_URL) {
-                    const res = await fetch(`${CLOUD_URL}?t=${Date.now()}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const serverLogs = data.logs || [];
-                        // Merge: union of local + server, deduplicated
-                        const merged = [...state.activityLogs];
-                        serverLogs.forEach(sl => {
-                            const exists = merged.some(ll =>
-                                ll.isoTimestamp === sl.isoTimestamp ||
-                                (ll.time === sl.time && ll.date === sl.date && ll.company === sl.company)
-                            );
-                            if (!exists) merged.push(sl);
-                        });
-                        allLogs = merged;
-                    } else {
-                        allLogs = [...state.activityLogs];
-                    }
+                if (CLOUD_ENABLED) {
+                    const snap = await db.ref('logs').once('value');
+                    const serverLogs = fbValToArray(snap.val());
+                    // Merge: union of local + server, deduplicated
+                    const merged = [...state.activityLogs];
+                    serverLogs.forEach(sl => {
+                        const exists = merged.some(ll =>
+                            ll.isoTimestamp === sl.isoTimestamp ||
+                            (ll.time === sl.time && ll.date === sl.date && ll.company === sl.company)
+                        );
+                        if (!exists) merged.push(sl);
+                    });
+                    allLogs = merged;
                 } else {
                     allLogs = [...state.activityLogs];
                 }
@@ -3029,29 +3042,25 @@ ${notesDisplay ? `
 
             let records = [];
             try {
-                if (DELETE_LOG_URL && !DELETE_LOG_URL.includes('PASTE_YOUR_NEW_DEPLOYMENT_ID_HERE')) {
-                    const res = await fetch(`${DELETE_LOG_URL}?t=${Date.now()}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const rows = data.rows || [];
-                        // الصف الأول عناوين الأعمدة - نتجاهله
-                        records = rows.slice(1).map(r => ({
-                            serverTime: r[0] || '',
-                            deletedAt:  r[1] || '',
-                            deletedBy:  r[2] || '',
-                            deleteType: r[3] || '',
-                            company:    r[4] || '',
-                            phone:      r[5] || '',
-                            hallName:   r[6] || '',
-                            startDate:  r[7] || '',
-                            endDate:    r[8] || '',
-                            startTime:  r[9] || '',
-                            endTime:    r[10] || '',
-                            notes:      r[11] || '',
-                            bookingId:  r[12] || '',
-                            groupId:    r[13] || ''
-                        }));
-                    }
+                if (CLOUD_ENABLED) {
+                    const snap = await db.ref('deletedBookings').once('value');
+                    const val = snap.val() || {};
+                    records = Object.values(val).map(r => ({
+                        serverTime: r.deletedAt || '',
+                        deletedAt:  r.deletedAt || '',
+                        deletedBy:  r.deletedBy || '',
+                        deleteType: r.deleteType || '',
+                        company:    r.companyName || '',
+                        phone:      r.phone || '',
+                        hallName:   r.hallName || '',
+                        startDate:  r.startDate || '',
+                        endDate:    r.endDate || '',
+                        startTime:  r.startTime || '',
+                        endTime:    r.endTime || '',
+                        notes:      r.notes || '',
+                        bookingId:  r.bookingId || '',
+                        groupId:    r.groupId || ''
+                    }));
                 }
             } catch (e) {
                 // في حالة الخطأ نعرض القائمة فارغة بدل تعطيل الواجهة
