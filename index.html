@@ -927,7 +927,7 @@
         // --- Core Functions ---
         window.onload = () => {
             init();
-            setInterval(autoSync, SYNC_INTERVAL);
+            setupRealtimeSync();
             // Close sync dropdown on outside click
             document.addEventListener('click', function(e) {
                 const container = document.getElementById('syncDropdownContainer');
@@ -1016,6 +1016,22 @@
                 return;
             }
             await syncToCloud(true);
+        }
+
+        // ─── الاشتراك اللحظي (Realtime) بدل التحميل + الاستعلام الدوري ────
+        // بدل استدعاء autoSync كل SYNC_INTERVAL (polling)، نستمع مباشرة لتغيّر
+        // عقدة meta/updatedAt في Firebase. أي تحديث (من أي جهاز/مستخدم) يصل
+        // فوراً هنا ويشغّل نفس دورة المزامنة الحالية (syncToCloud) دون أي
+        // تغيير في منطق الدمج/التعارضات. باقي التطبيق يبقى كما هو تماماً.
+        let _realtimeSyncStarted = false;
+        function setupRealtimeSync() {
+            if (!CLOUD_ENABLED || _realtimeSyncStarted) return;
+            _realtimeSyncStarted = true;
+            db.ref('meta/updatedAt').on('value', () => {
+                autoSync();
+            }, (err) => {
+                console.error('Realtime sync listener error:', err);
+            });
         }
 
         async function syncToCloud(isSilent = false) {
