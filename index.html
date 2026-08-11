@@ -335,45 +335,6 @@
 <body>
 
     <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
-            <div class="text-center mb-10 mt-2">
-                <div class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm relative group">
-                    <div class="absolute inset-0 bg-[#A88A45] opacity-0 group-hover:opacity-10 rounded-[1.5rem] transition-opacity duration-300"></div>
-                    <i data-lucide="shield-check" class="w-12 h-12 text-[#6E1418]"></i>
-                </div>
-                <h2 class="text-3xl font-black text-[#6E1418] tracking-tight">مرحباً بك</h2>
-                <p class="text-slate-500 mt-2 text-sm">نظام إدارة حجوزات قاعات رستا</p>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-5">
-                <div class="input-group">
-                    <label>البريد الإلكتروني</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="mail" class="w-5 h-5 text-slate-400"></i>
-                        </div>
-                        <input type="email" id="loginEmail" required class="text-left pl-12" dir="ltr" placeholder="user@example.com">
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label>كلمة المرور</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
-                        </div>
-                        <input type="password" id="loginPassword" required class="text-left pl-12" dir="ltr" placeholder="••••••••">
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
-                    <span>تسجيل الدخول</span>
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                </button>
-            </form>
-            <p class="text-xs text-center text-slate-400 mt-8 bg-slate-50 py-3 rounded-xl border border-slate-100">للحصول على حساب جديد، يرجى التواصل مع مدير النظام.</p>
-        </div>
-    </div>
-
     <!-- Main App -->
     <div id="app" style="display: none;">
         <!-- Content injected by JS -->
@@ -985,12 +946,9 @@
             });
             if (migrated) localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
 
-            if (state.isLoggedIn) {
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                render();
-                if(CLOUD_ENABLED) loadFromCloud();
-            }
+            document.getElementById('app').style.display = 'block';
+            render();
+            if(CLOUD_ENABLED) loadFromCloud();
         }
 
         function saveUsers() {
@@ -1414,7 +1372,6 @@
             state.currentUserEmail = email;
             state.isLoggedIn = true;
             localStorage.setItem('hotel_app_email', email);
-            document.getElementById('loginModal').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             render();
             if (CLOUD_ENABLED) loadFromCloud();
@@ -2303,12 +2260,6 @@ ${notesDisplay ? `
                                 </button>
                             ` : ''}
 
-                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
-                            
-                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
-                                <span class="hidden sm:inline">خروج</span>
-                                <i data-lucide="log-out" class="w-5 h-5"></i>
-                            </button>
                         </div>
                     </div>
                 </header>
@@ -2328,7 +2279,7 @@ ${notesDisplay ? `
                         <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <div class="absolute -left-8 -bottom-8 w-24 h-24 bg-[#A88A45]/30 rounded-full blur-xl"></div>
                         
-                        <h2 class="text-xl font-black mb-1 relative z-10">نظرة عامة سريعة</h2>
+                        <h2 class="text-xl font-black mb-1 relative z-10">مروة</h2>
                         <p class="text-sm text-white/70 mb-6 relative z-10 font-medium">إحصائيات الحجوزات لجميع القاعات</p>
                         
                         <div class="grid grid-cols-2 gap-4 relative z-10">
