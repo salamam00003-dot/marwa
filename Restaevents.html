@@ -815,6 +815,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const CLOUD_ENABLED = true; // Firebase مفعّل دائماً (بديل عن فحص وجود رابط GAS القديم)
+        // آخر قيمة معروفة لـ meta/updatedAt — تُستخدم في الاشتراك اللحظي لتفادي إعادة
+        // مزامنة غير ضرورية عندما يكون التغيير صادراً من كتابتنا نحن أنفسنا
+        let _lastKnownUpdatedAt = null;
 
         const ADMIN_EMAIL = "salama.m@gmail.com";
 
@@ -854,6 +857,7 @@
                 db.ref('users').set(usersForCloud),
                 db.ref('meta/updatedAt').set(now)
             ]);
+            _lastKnownUpdatedAt = now; // تسجيل فوري لتفادي إعادة مزامنة ذاتية عند وصول حدث المستمع اللحظي
             return now;
         }
 
@@ -892,6 +896,13 @@
         function getDefaultEmployeeName() {
             return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
         }
+        // ─── اسم المستخدم الحالي المعروض في الواجهة (أو "زائر" في وضع الزيارة) ────
+        function getCurrentUserDisplayName() {
+            if (isGuest()) return 'زائر';
+            const mappedName = DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()];
+            if (mappedName) return mappedName;
+            return state.currentUserEmail || 'زائر';
+        }
         const LOGO_PATH = "./001.png"; 
         const SYNC_INTERVAL = 10000; 
 
@@ -918,6 +929,7 @@
             activityLogs: JSON.parse(localStorage.getItem('hotel_logs_local')) || [],
             pendingDeletions: JSON.parse(localStorage.getItem('hotel_deleted_ids')) || [],
             pendingDeletedUsers: JSON.parse(localStorage.getItem('hotel_deleted_users')) || [],
+            dirtyUserEmails: JSON.parse(localStorage.getItem('hotel_dirty_users')) || [],
             notifications: JSON.parse(localStorage.getItem('hotel_notifications')) || [], 
             currentMonth: new Date().getMonth(),
             currentYear: new Date().getFullYear(),
@@ -934,7 +946,8 @@
         // --- Core Functions ---
         window.onload = () => {
             init();
-            setInterval(autoSync, SYNC_INTERVAL);
+            // تم استبدال الفحص الدوري (setInterval كل SYNC_INTERVAL) بالاشتراك اللحظي
+            // على meta/updatedAt — يتم تفعيله داخل init() / performLogin() عبر setupRealtimeSync()
             // Close sync dropdown on outside click
             document.addEventListener('click', function(e) {
                 const container = document.getElementById('syncDropdownContainer');
@@ -959,6 +972,7 @@
             } else {
                 state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
                 saveUsers();
+                markUserDirty(ADMIN_EMAIL);
             }
 
             // تنظيف لمرة واحدة: حذف جميع الحسابات والإبقاء فقط على الحسابات المسموح بها
@@ -996,12 +1010,22 @@
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('app').style.display = 'block';
                 render();
-                if(CLOUD_ENABLED) loadFromCloud();
+                if(CLOUD_ENABLED) setupRealtimeSync();
             }
         }
 
         function saveUsers() {
             localStorage.setItem('hotel_users_db', JSON.stringify(state.users));
+        }
+
+        // يعلّم مستخدم معيّن كـ"معدَّل محليًا" (إضافة/تغيير باسورد) عشان يتبعت فعليًا للسحابة
+        // في المزامنة الجاية، بدل الاعتماد على استنتاج الفرق بين القوائم
+        function markUserDirty(email) {
+            if (!state.dirtyUserEmails.includes(email)) {
+                state.dirtyUserEmails.push(email);
+            }
+            state._opsVersion++;
+            localStorage.setItem('hotel_dirty_users', JSON.stringify(state.dirtyUserEmails));
         }
 
         function showSync(text = "جاري المزامنة...", isError = false) {
@@ -1063,12 +1087,27 @@
                 const serverLogs     = serverData.logs     || [];
                 const serverUsers    = serverData.users    || [];
 
-                // مستخدمون مضافون محليًا وغير موجودين على السحابة بعد (يجب رفعهم)
-                const serverEmailsSet = new Set(serverUsers.map(su => su.email));
-                const hasNewLocalUsers = state.users.some(u => !serverEmailsSet.has(u.email));
-                const shouldPushUsers = hasPendingChanges || hasNewLocalUsers;
+                // ── حماية: لو حساب المستخدم الحالي اتحذف من مكان تاني (السيرفر ما عادش فيه إيميله) ──
+                // نعمل له تسجيل خروج فوري بدل ما نسيبه شغال بحساب محذوف، ونمنع أي رفع بيانات لحسابه
+                const serverEmailsSetCheck = new Set(serverUsers.map(su => su.email));
+                if (state.currentUserEmail && state.currentUserEmail !== GUEST_EMAIL &&
+                    state.currentUserEmail !== ADMIN_EMAIL && !serverEmailsSetCheck.has(state.currentUserEmail)) {
+                    state.isSyncing = false;
+                    showToast('تم حذف حسابك من قبل المدير. سيتم تسجيل خروجك.', 'error');
+                    setTimeout(logout, 1000);
+                    return;
+                }
+
+                // مستخدمون تم تعديلهم محليًا (إضافة جديدة أو تغيير باسورد) عبر action صريح
+                // بنعتمد على قائمة صريحة (dirtyUserEmails) بدل استنتاج "الفرق" بين القوائم،
+                // عشان أي جهاز (حتى جهاز الأدمن نفسه لو فاتح من كذا متصفح) ولسه شايل نسخة محلية
+                // قديمة، ميرجّعش يبعت مستخدمين اتحذفوا من جهاز تاني للسحابة تاني من غير قصد
+                const pendingUserChanges = [...(state.dirtyUserEmails || [])];
+                const hasPendingUserChanges = pendingUserChanges.length > 0;
+                const shouldPushUsers = hasPendingChanges || hasPendingUserChanges;
 
                 let finalBookings;
+                let usersForCloud;
 
                 if (shouldPushUsers) {
                     const bookingsMap = new Map(serverBookings.map(b => [String(b.id), b]));
@@ -1080,19 +1119,20 @@
                     pendingDels.forEach(id => bookingsMap.delete(String(id)));
                     finalBookings = Array.from(bookingsMap.values());
 
-                    // ── حذف المستخدمين نهائياً من السحابة ──
-                    // نبني قائمة المستخدمين النهائية بحيث:
-                    // 1. نأخذ المستخدمين المحليين (بعد الحذف)
-                    // 2. نضيف أي مستخدم من السحابة غير موجود محلياً وغير محذوف
-                    // 3. لا نُضيف أي مستخدم في قائمة pendingDelUsers نهائياً
+                    // ── بناء قائمة المستخدمين اللي هتتبعت للسحابة ──
+                    // الأساس هو قائمة السحابة نفسها (المصدر الموثوق)، وفوقها بس بنطبّق:
+                    // 1. حذف المستخدمين اللي في pendingDelUsers
+                    // 2. تحديث/إضافة المستخدمين اللي فعليًا اتغيّروا محليًا (pendingUserChanges)
+                    // كده أي مستخدم تاني موجود محليًا بس ملوش تغيير صريح، مش هيتبعت تاني للسحابة
                     const deletedUsersSet = new Set(pendingDelUsers);
-                    const localEmails = new Set(state.users.map(u => u.email));
-                    const usersForCloud = [...state.users];
-                    serverUsers.forEach(su => {
-                        if (!deletedUsersSet.has(su.email) && !localEmails.has(su.email)) {
-                            usersForCloud.push(su);
-                        }
+                    const usersMap = new Map(serverUsers.map(su => [su.email, su]));
+                    deletedUsersSet.forEach(email => usersMap.delete(email));
+                    pendingUserChanges.forEach(email => {
+                        if (deletedUsersSet.has(email)) return;
+                        const localUser = state.users.find(u => u.email === email);
+                        if (localUser) usersMap.set(email, localUser);
                     });
+                    usersForCloud = Array.from(usersMap.values());
 
                     await pushCloudSnapshot(
                         finalBookings,
@@ -1136,25 +1176,21 @@
 
                 const finalLogs  = mergeLogs(state.activityLogs, serverLogs);
                 // ── بناء القائمة النهائية للمستخدمين بعد المزامنة ──
-                // لا نستخدم mergeUsers هنا لأن pendingDeletedUsers سيُصفَّر بعد هذا مباشرة
-                // بدلاً من ذلك نعتمد على state.users المحدّثة (بعد الحذف) كمصدر موثوق
-                const deletedUsersSetFinal = new Set(state.pendingDeletedUsers || []);
-                const localEmailsFinal = new Set(state.users.map(u => u.email));
-                const finalUsers = [...state.users];
-                serverUsers.forEach(su => {
-                    if (!deletedUsersSetFinal.has(su.email) && !localEmailsFinal.has(su.email)) {
-                        finalUsers.push(su);
-                    }
-                });
+                // السحابة هي المصدر الموثوق دايمًا. لو كنا بعتنا تعديلات (shouldPushUsers)
+                // فالقائمة اللي اتبعتت (usersForCloud) هي الصح، وإلا فقائمة السحابة نفسها كما هي.
+                // كده أي نسخة محلية قديمة (فيها مستخدم متحذف من جهاز تاني) بتتصفّى تلقائيًا بعد كل مزامنة
+                const finalUsers = shouldPushUsers ? usersForCloud : serverUsers;
 
                 state.bookings          = finalBookings;   
                 state.pendingDeletions  = [];
                 state.pendingDeletedUsers = [];
+                state.dirtyUserEmails    = [];
                 state.activityLogs      = finalLogs;
                 state.users             = finalUsers;
 
                 localStorage.setItem('hotel_deleted_ids', JSON.stringify([]));
                 localStorage.setItem('hotel_deleted_users', JSON.stringify([]));
+                localStorage.setItem('hotel_dirty_users', JSON.stringify([]));
                 saveLocalStateOnly();
 
                 if (!(state.view === 'hall_detail' && state.activeTab === 'form')) {
@@ -1209,6 +1245,29 @@
 
         async function loadFromCloud(isSilent = false) {
             await syncToCloud(isSilent);
+        }
+
+        // ─── الاشتراك اللحظي في تحديثات السحابة ─────────────────────────
+        // يحل محل "تحميل مرة واحدة + فحص دوري كل SYNC_INTERVAL": بدل السؤال عن
+        // وجود تحديث كل عدة ثوانٍ، نستمع مباشرة لتغيّر meta/updatedAt في Firebase،
+        // فتتم المزامنة فوراً عند أي تغيير حقيقي فقط (من نفس المستخدم على جهاز آخر
+        // أو من مستخدم آخر)، مع تجاهل الأصداء الناتجة عن كتابتنا نحن أنفسنا.
+        function setupRealtimeSync() {
+            if (!CLOUD_ENABLED) return;
+            db.ref('meta/updatedAt').on('value', (snap) => {
+                const newVal = snap.val();
+                if (newVal === _lastKnownUpdatedAt) return; // نفس القيمة (غالباً صدى كتابتنا) — تجاهل
+                _lastKnownUpdatedAt = newVal;
+                if (state.isSyncing) {
+                    state._syncPending = true;
+                    return;
+                }
+                syncToCloud(true);
+            });
+        }
+
+        function teardownRealtimeSync() {
+            db.ref('meta/updatedAt').off('value');
         }
 
         function saveLocal() {
@@ -1409,7 +1468,7 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             render();
-            if (CLOUD_ENABLED) loadFromCloud();
+            if (CLOUD_ENABLED) setupRealtimeSync();
         }
 
         function loginAsGuest() {
@@ -1417,6 +1476,7 @@
         }
 
         function logout() {
+            if (CLOUD_ENABLED) teardownRealtimeSync();
             state.currentUserEmail = '';
             state.isLoggedIn = false;
             localStorage.removeItem('hotel_app_email');
@@ -1482,6 +1542,7 @@
                 const userIndex = state.users.findIndex(u => u.email === email);
                 if(userIndex !== -1) {
                     state.users[userIndex].password = newPass.trim();
+                    markUserDirty(email);
                     saveUsers();
                     syncToCloud();
                     renderUsersTable();
@@ -1519,6 +1580,7 @@
 
             // Create user
             state.users.push({ email: email, password: password, createdAt: new Date().toISOString() });
+            markUserDirty(email);
             saveUsers();
             syncToCloud();
             renderUsersTable();
@@ -2334,7 +2396,7 @@ ${notesDisplay ? `
                         <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <div class="absolute -left-8 -bottom-8 w-24 h-24 bg-[#A88A45]/30 rounded-full blur-xl"></div>
                         
-                        <h2 class="text-xl font-black mb-1 relative z-10">نظرة عامة سريعة</h2>
+                        <h2 class="text-xl font-black mb-1 relative z-10">${getCurrentUserDisplayName()}</h2>
                         <p class="text-sm text-white/70 mb-6 relative z-10 font-medium">إحصائيات الحجوزات لجميع القاعات</p>
                         
                         <div class="grid grid-cols-2 gap-4 relative z-10">
