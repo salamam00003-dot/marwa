@@ -197,6 +197,28 @@
             opacity: 1; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
         }
+        .booking-tag[draggable="true"] {
+            cursor: grab;
+        }
+        .booking-tag.dragging {
+            opacity: 0.35;
+            cursor: grabbing;
+        }
+
+        /* Drag & Drop day-cell target highlight */
+        .day-cell.drag-over {
+            border-color: var(--brand-gold, #A88A45);
+            box-shadow: 0 0 0 2px rgba(168, 138, 69, 0.35), 0 6px 16px rgba(0,0,0,0.08);
+            background-color: #fffdf7;
+            z-index: 20;
+        }
+
+        /* Drag & Drop over month nav arrows (switch month while dragging) */
+        button.drag-over {
+            background-color: #fffdf7 !important;
+            box-shadow: 0 0 0 2px rgba(168, 138, 69, 0.45) !important;
+            color: #6E1418 !important;
+        }
 
         /* حاوية الحجوزات داخل كل يوم */
         .day-bookings-container {
@@ -897,6 +919,13 @@
                     dd.classList.add('hidden');
                 }
             });
+
+            // تمرير تلقائي للصفحة لأعلى/لأسفل أثناء سحب حجز (يفيد خصوصاً على الموبايل
+            // حيث لا يظهر التقويم كاملاً على الشاشة أثناء السحب)
+            document.addEventListener('dragover', handleGlobalDragAutoScroll);
+            document.addEventListener('touchmove', handleGlobalTouchAutoScroll, { passive: false });
+            document.addEventListener('dragend', stopDragAutoScroll);
+            document.addEventListener('drop', stopDragAutoScroll);
         };
 
         function init() {
@@ -2193,6 +2222,183 @@ ${notesDisplay ? `
             render();
         }
 
+        // ─── Drag & Drop: Move a booking to another day ──────────────────
+        let draggedBookingId = null;
+        let monthSwitchTimer = null;
+        let dragAutoScrollRAF = null;
+        let dragPointerY = null;
+
+        // يتابع مكان المؤشر أثناء السحب (dragover) ويشغّل حلقة التمرير التلقائي
+        function handleGlobalDragAutoScroll(e) {
+            if (!draggedBookingId) return;
+            dragPointerY = e.clientY;
+            startDragAutoScroll();
+        }
+
+        // بديل عبر اللمس لبعض متصفحات الموبايل التي قد ترسل touchmove أثناء السحب
+        function handleGlobalTouchAutoScroll(e) {
+            if (!draggedBookingId) return;
+            const touch = e.touches && e.touches[0];
+            if (!touch) return;
+            dragPointerY = touch.clientY;
+            startDragAutoScroll();
+        }
+
+        function startDragAutoScroll() {
+            if (dragAutoScrollRAF) return;
+            const EDGE = 90;   // منطقة الحساسية عند حافتي الشاشة (px)
+            const MAX_SPEED = 16; // أقصى سرعة تمرير لكل إطار (px)
+            const step = () => {
+                if (!draggedBookingId || dragPointerY === null) {
+                    dragAutoScrollRAF = null;
+                    return;
+                }
+                const vh = window.innerHeight;
+                if (dragPointerY < EDGE) {
+                    const intensity = (EDGE - dragPointerY) / EDGE;
+                    window.scrollBy(0, -Math.ceil(MAX_SPEED * intensity));
+                } else if (dragPointerY > vh - EDGE) {
+                    const intensity = (dragPointerY - (vh - EDGE)) / EDGE;
+                    window.scrollBy(0, Math.ceil(MAX_SPEED * intensity));
+                }
+                dragAutoScrollRAF = requestAnimationFrame(step);
+            };
+            dragAutoScrollRAF = requestAnimationFrame(step);
+        }
+
+        function stopDragAutoScroll() {
+            dragPointerY = null;
+            if (dragAutoScrollRAF) {
+                cancelAnimationFrame(dragAutoScrollRAF);
+                dragAutoScrollRAF = null;
+            }
+        }
+
+        function clearMonthSwitchTimer() {
+            if (monthSwitchTimer) {
+                clearTimeout(monthSwitchTimer);
+                monthSwitchTimer = null;
+            }
+        }
+
+        // اسحب الحجز فوق سهم الشهر السابق/التالي واستمر بضع لحظات للتنقل بين الشهور أثناء السحب
+        function handleMonthNavDragOver(e, delta) {
+            if (!draggedBookingId) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            if (monthSwitchTimer) return;
+            if (e.currentTarget) e.currentTarget.classList.add('drag-over');
+            monthSwitchTimer = setTimeout(() => {
+                monthSwitchTimer = null;
+                if (draggedBookingId) changeMonth(delta);
+            }, 650);
+        }
+
+        function handleMonthNavDragLeave(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+            clearMonthSwitchTimer();
+        }
+
+        function handleBookingDragStart(e, id) {
+            const booking = state.bookings.find(b => b.id === id);
+            const canDrag = booking && (state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail);
+            if (!canDrag) {
+                e.preventDefault();
+                return;
+            }
+            draggedBookingId = id;
+            e.stopPropagation();
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', id); } catch (err) {}
+            }
+            if (e.currentTarget) e.currentTarget.classList.add('dragging');
+        }
+
+        function handleBookingDragEnd(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('dragging');
+            draggedBookingId = null;
+            clearMonthSwitchTimer();
+            stopDragAutoScroll();
+            document.querySelectorAll('.day-cell.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        function handleDayDragOver(e) {
+            if (!draggedBookingId) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            if (e.currentTarget) e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDayDragLeave(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDayDrop(e, newDate) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+            clearMonthSwitchTimer();
+            stopDragAutoScroll();
+            const id = draggedBookingId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+            draggedBookingId = null;
+            if (!id) return;
+            moveBookingToDate(id, newDate);
+        }
+
+        function moveBookingToDate(id, newDate) {
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            // صلاحية النقل: صاحب الحجز نفسه أو الأدمن فقط
+            const canMove = state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail;
+            if (!canMove) {
+                showToast('عذراً، يمكنك نقل حجوزاتك الخاصة فقط.', 'error');
+                return;
+            }
+
+            if (booking.startDate === newDate) return;
+
+            // فحص التعارض في القاعة نفسها باليوم الجديد (تجاهل هذا اليوم فقط من الحجز)
+            if (checkConflict(booking.hallId, newDate, booking.startTime, booking.endTime, booking.id, false)) {
+                showToast('عذراً، يوجد حجز آخر في نفس التوقيت بتاريخ ' + newDate.split('-').reverse().join('/') + '.', 'error');
+                return;
+            }
+
+            const oldDate = booking.startDate;
+            booking.startDate = newDate;
+            booking._isDirty = true;
+
+            // إبقاء نطاق العرض متزامناً مع أيام المجموعة الفعلية
+            const groupId = booking.groupId || booking.id;
+            const groupDays = state.bookings.filter(b => b.groupId === groupId || b.id === groupId);
+            if (groupDays.length) {
+                const sortedDates = groupDays.map(b => b.startDate).slice().sort();
+                const newRange = sortedDates[0] + ' to ' + sortedDates[sortedDates.length - 1];
+                groupDays.forEach(b => { b.originalRange = newRange; });
+            }
+
+            const fmtOld = oldDate.split('-').reverse().join('/');
+            const fmtNew = newDate.split('-').reverse().join('/');
+            const logMsg = 'تم نقل حجز - ' + booking.companyName + ' - من ' + fmtOld + ' إلى ' + fmtNew;
+
+            addNotification(logMsg, 'add', newDate);
+            showToast(logMsg, 'success', newDate);
+
+            state.activityLogs.unshift({
+                type:         'نقل',
+                company:      booking.companyName,
+                hallName:     booking.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            saveLocal();
+            render();
+        }
+
         function render() {
             const app = document.getElementById('app');
             app.innerHTML = `
@@ -2352,11 +2558,11 @@ ${notesDisplay ? `
                             <h2 class="text-2xl font-black text-[#6E1418] tracking-tight">التقويم الشهري</h2>
                         </div>
                         <div class="flex bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
-                            <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            <button onclick="changeMonth(-1)" ondragover="handleMonthNavDragOver(event, -1)" ondragleave="handleMonthNavDragLeave(event)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
                             <span class="px-6 py-2 text-base font-black text-[#6E1418] flex items-center min-w-[140px] justify-center tracking-wide">
                                 ${new Date(state.currentYear, state.currentMonth).toLocaleString('ar-EG', { month: 'long', year: 'numeric' })} (شهر ${state.currentMonth + 1})
                             </span>
-                            <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <button onclick="changeMonth(1)" ondragover="handleMonthNavDragOver(event, 1)" ondragleave="handleMonthNavDragLeave(event)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                         </div>
                     </div>
                     ${renderCalendar(true)}
@@ -2401,8 +2607,13 @@ ${notesDisplay ? `
                 const tagsHtml = visibleBookings.map(b => {
                     const hall = HALLS.find(h => h.id === b.hallId);
                     const isMyBooking = b.createdBy === state.currentUserEmail;
+                    const canDrag = state.currentUserEmail === ADMIN_EMAIL || isMyBooking;
                     return `
-                        <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}" title="${hall.name}: ${b.companyName}">
+                        <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}"
+                             title="${hall.name}: ${b.companyName}${canDrag ? ' (اسحب لنقل الحجز ليوم آخر)' : ''}"
+                             draggable="${canDrag}"
+                             ondragstart="${canDrag ? `handleBookingDragStart(event, '${b.id}')` : ''}"
+                             ondragend="${canDrag ? 'handleBookingDragEnd(event)' : ''}">
                             <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" style="min-width:6px;"></div>
                             <span>${b.companyName}</span>
                         </div>
@@ -2415,7 +2626,11 @@ ${notesDisplay ? `
 
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 days.push(`
-                    <div onclick="handleDayClick('${dateStr}')" class="day-cell ${isToday ? 'today-active z-10' : ''} cursor-pointer group">
+                    <div onclick="handleDayClick('${dateStr}')"
+                         ondragover="handleDayDragOver(event)"
+                         ondragleave="handleDayDragLeave(event)"
+                         ondrop="handleDayDrop(event, '${dateStr}')"
+                         class="day-cell ${isToday ? 'today-active z-10' : ''} cursor-pointer group">
                         <div class="flex items-center justify-between mb-1" style="flex-shrink:0;">
                             <span class="text-sm font-black w-7 h-7 flex items-center justify-center rounded-lg ${isToday ? 'bg-[#6E1418] text-white' : 'text-slate-500 group-hover:bg-slate-100 transition-colors'}">${i}</span>
                             ${totalCount > 0 ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${totalCount}</span>` : ''}
