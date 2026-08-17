@@ -197,6 +197,50 @@
             opacity: 1; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
         }
+        .booking-tag[draggable] {
+            /* يمنع المتصفح من التقاط اللمسة الطويلة لنفسه (تحديد نص / سحب أصلي / سكرول)
+               عشان كود اللمس بتاعنا يقدر يمسك السحب كامل من غير ما يتلغي فجأة.
+               مهم: نستخدم [draggable] مش [draggable="true"] لأن كود اللمس بيغيّر
+               draggable لـ false مؤقتاً أثناء السحب، ولو الحماية مربوطة بـ "true"
+               فقط، هتختفي بالظبط في اللحظة اللي محتاجينها فيها فتظهر قائمة
+               تحديد النص الأصلية بدل السحب. */
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .booking-tag[draggable="true"] {
+            cursor: grab;
+        }
+        .booking-tag.dragging {
+            opacity: 0.35;
+            cursor: grabbing;
+        }
+
+        /* Touch drag ghost (mobile long-press drag) */
+        .touch-drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            transform: translate(-50%, -130%) scale(1.06);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+            opacity: 0.95;
+        }
+
+        /* Drag & Drop day-cell target highlight */
+        .day-cell.drag-over {
+            border-color: var(--brand-gold, #A88A45);
+            box-shadow: 0 0 0 2px rgba(168, 138, 69, 0.35), 0 6px 16px rgba(0,0,0,0.08);
+            background-color: #fffdf7;
+            z-index: 20;
+        }
+
+        /* Drag & Drop over month nav arrows (switch month while dragging) */
+        button.drag-over {
+            background-color: #fffdf7 !important;
+            box-shadow: 0 0 0 2px rgba(168, 138, 69, 0.45) !important;
+            color: #6E1418 !important;
+        }
 
         /* حاوية الحجوزات داخل كل يوم */
         .day-bookings-container {
@@ -299,6 +343,36 @@
         }
         .sync-dropdown button:hover { background: #f8fafc; color: var(--brand-red); padding-right: 20px; }
         .sync-dropdown button:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+
+        /* Attachment Dropdown (real <a> links so it works inside Android WebView apps
+           that don't implement window.open() / onCreateWindow) */
+        .attachment-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 160px;
+            background: white;
+            border-radius: 0.85rem;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            z-index: 9999;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .attachment-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: right;
+            background: white;
+            color: #1d4ed8;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .attachment-dropdown a:hover { background: #eff6ff; color: #1e40af; padding-right: 18px; }
+        .attachment-dropdown a:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
 
         /* FAB New Booking Button */
         .fab-new-booking {
@@ -745,8 +819,18 @@
                             <textarea name="notes" rows="3" placeholder="أضف أي تفاصيل، تجهيزات خاصة، أو متطلبات..."></textarea>
                         </div>
                         <div class="input-group">
-                            <label>رابط مرفق (Google Drive / URL)</label>
-                            <input type="url" name="link" placeholder="https://..." dir="ltr" class="text-left">
+                            <label>روابط المرفقات (Google Drive / URL)</label>
+                            <div id="linksContainer" class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="url" name="links[]" placeholder="https://..." dir="ltr" class="text-left flex-1">
+                                    <button type="button" onclick="removeLinkField(this)" class="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="حذف الرابط">
+                                        <i data-lucide="x" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addLinkField()" class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#6E1418] hover:text-white hover:bg-[#6E1418] bg-[#6E1418]/5 px-3 py-1.5 rounded-lg transition-colors border border-[#6E1418]/10">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> إضافة رابط آخر
+                            </button>
                         </div>
                     </div>
 
@@ -896,13 +980,6 @@
         function getDefaultEmployeeName() {
             return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
         }
-        // ─── اسم المستخدم الحالي المعروض في الواجهة (أو "زائر" في وضع الزيارة) ────
-        function getCurrentUserDisplayName() {
-            if (isGuest()) return 'زائر';
-            const mappedName = DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()];
-            if (mappedName) return mappedName;
-            return state.currentUserEmail || 'زائر';
-        }
         const LOGO_PATH = "./001.png"; 
         const SYNC_INTERVAL = 10000; 
 
@@ -955,7 +1032,28 @@
                 if (dd && container && !container.contains(e.target)) {
                     dd.classList.add('hidden');
                 }
+                const moreContainer = document.getElementById('moreMenuContainer');
+                const moreDd = document.getElementById('moreMenuDropdown');
+                if (moreDd && moreContainer && !moreContainer.contains(e.target)) {
+                    moreDd.classList.add('hidden');
+                }
+                // Close any open attachment dropdowns when clicking outside
+                // both the dropdown itself (now living under <body>) and its
+                // trigger button.
+                document.querySelectorAll('.attachment-dropdown:not(.hidden)').forEach(dd => {
+                    const btn = dd._ownerBtn;
+                    if (!dd.contains(e.target) && !(btn && btn.contains(e.target))) {
+                        dd.classList.add('hidden');
+                    }
+                });
             });
+
+            // تمرير تلقائي للصفحة لأعلى/لأسفل أثناء سحب حجز (يفيد خصوصاً على الموبايل
+            // حيث لا يظهر التقويم كاملاً على الشاشة أثناء السحب)
+            document.addEventListener('dragover', handleGlobalDragAutoScroll);
+            document.addEventListener('touchmove', handleGlobalTouchAutoScroll, { passive: false });
+            document.addEventListener('dragend', stopDragAutoScroll);
+            document.addEventListener('drop', stopDragAutoScroll);
         };
 
         function init() {
@@ -1409,7 +1507,7 @@
             const wsData = [
                 ["الرقم المرجعي", "اسم الشركة/الجهة", "القاعة", "من تاريخ", "إلى تاريخ",
                  "من وقت", "إلى وقت", "رقم الهاتف", "الموظف المسؤول",
-                 "ملاحظات", "الرابط المرفق", "تم الإنشاء بواسطة", "تاريخ الإنشاء"],
+                 "ملاحظات", "روابط المرفقات", "تم الإنشاء بواسطة", "تاريخ الإنشاء"],
                 ...bookings.map(b => [
                     b.id        || '',
                     b.companyName || '',
@@ -1421,7 +1519,7 @@
                     b.phone     || '',
                     b.employee  || '',
                     (b.notes    || '').replace(/\n/g, ' '),
-                    b.link      || '',
+                    getBookingLinks(b).join(' | '),
                     b.createdBy || '',
                     b.createdAt ? b.createdAt.split('T')[0] : ''
                 ])
@@ -1623,6 +1721,228 @@
             }
         }
 
+        // ─── Drag & Drop: Move a booking to another day ──────────────────
+        let draggedBookingId = null;
+        // ─── Undo/Redo لعمليات نقل الحجوزات (سحب وإفلات) ──────────────────
+        let moveUndoStack = [];
+        let moveRedoStack = [];
+        const MOVE_HISTORY_LIMIT = 50;
+        let monthSwitchTimer = null;
+        let dragAutoScrollRAF = null;
+        let dragPointerY = null;
+
+        // يتابع مكان المؤشر أثناء السحب (dragover) ويشغّل حلقة التمرير التلقائي
+        function handleGlobalDragAutoScroll(e) {
+            if (!draggedBookingId) return;
+            dragPointerY = e.clientY;
+            startDragAutoScroll();
+        }
+
+        // بديل عبر اللمس لبعض متصفحات الموبايل التي قد ترسل touchmove أثناء السحب
+        function handleGlobalTouchAutoScroll(e) {
+            if (!draggedBookingId) return;
+            const touch = e.touches && e.touches[0];
+            if (!touch) return;
+            dragPointerY = touch.clientY;
+            startDragAutoScroll();
+        }
+
+        function startDragAutoScroll() {
+            if (dragAutoScrollRAF) return;
+            const EDGE = 90;   // منطقة الحساسية عند حافتي الشاشة (px)
+            const MAX_SPEED = 16; // أقصى سرعة تمرير لكل إطار (px)
+            const step = () => {
+                if (!draggedBookingId || dragPointerY === null) {
+                    dragAutoScrollRAF = null;
+                    return;
+                }
+                const vh = window.innerHeight;
+                if (dragPointerY < EDGE) {
+                    const intensity = (EDGE - dragPointerY) / EDGE;
+                    window.scrollBy(0, -Math.ceil(MAX_SPEED * intensity));
+                } else if (dragPointerY > vh - EDGE) {
+                    const intensity = (dragPointerY - (vh - EDGE)) / EDGE;
+                    window.scrollBy(0, Math.ceil(MAX_SPEED * intensity));
+                }
+                dragAutoScrollRAF = requestAnimationFrame(step);
+            };
+            dragAutoScrollRAF = requestAnimationFrame(step);
+        }
+
+        function stopDragAutoScroll() {
+            dragPointerY = null;
+            if (dragAutoScrollRAF) {
+                cancelAnimationFrame(dragAutoScrollRAF);
+                dragAutoScrollRAF = null;
+            }
+        }
+
+        function clearMonthSwitchTimer() {
+            if (monthSwitchTimer) {
+                clearTimeout(monthSwitchTimer);
+                monthSwitchTimer = null;
+            }
+        }
+
+        // اسحب الحجز فوق سهم الشهر السابق/التالي واستمر بضع لحظات للتنقل بين الشهور أثناء السحب
+        function handleMonthNavDragOver(e, delta) {
+            if (!draggedBookingId) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            if (monthSwitchTimer) return;
+            if (e.currentTarget) e.currentTarget.classList.add('drag-over');
+            monthSwitchTimer = setTimeout(() => {
+                monthSwitchTimer = null;
+                if (draggedBookingId) changeMonth(delta);
+            }, 650);
+        }
+
+        function handleMonthNavDragLeave(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+            clearMonthSwitchTimer();
+        }
+
+        function handleBookingDragStart(e, id) {
+            const booking = state.bookings.find(b => b.id === id);
+            const canDrag = booking && (state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail);
+            if (!canDrag) {
+                e.preventDefault();
+                return;
+            }
+            draggedBookingId = id;
+            e.stopPropagation();
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', id); } catch (err) {}
+            }
+            if (e.currentTarget) e.currentTarget.classList.add('dragging');
+        }
+
+        function handleBookingDragEnd(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('dragging');
+            draggedBookingId = null;
+            clearMonthSwitchTimer();
+            stopDragAutoScroll();
+            document.querySelectorAll('.day-cell.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        function handleDayDragOver(e) {
+            if (!draggedBookingId) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            if (e.currentTarget) e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDayDragLeave(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDayDrop(e, newDate) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.currentTarget) e.currentTarget.classList.remove('drag-over');
+            clearMonthSwitchTimer();
+            stopDragAutoScroll();
+            const id = draggedBookingId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+            draggedBookingId = null;
+            if (!id) return;
+            moveBookingToDate(id, newDate);
+        }
+
+        function moveBookingToDate(id, newDate, _skipHistory) {
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+
+            // صلاحية النقل: صاحب الحجز نفسه أو الأدمن فقط
+            const canMove = state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail;
+            if (!canMove) {
+                showToast('عذراً، يمكنك نقل حجوزاتك الخاصة فقط.', 'error');
+                return;
+            }
+
+            if (booking.startDate === newDate) return;
+
+            // فحص التعارض في القاعة نفسها باليوم الجديد (تجاهل هذا اليوم فقط من الحجز)
+            if (checkConflict(booking.hallId, newDate, booking.startTime, booking.endTime, booking.id, false)) {
+                showToast('عذراً، يوجد حجز آخر في نفس التوقيت بتاريخ ' + newDate.split('-').reverse().join('/') + '.', 'error');
+                return;
+            }
+
+            const oldDate = booking.startDate;
+            booking.startDate = newDate;
+            booking._isDirty = true;
+
+            if (!_skipHistory) {
+                moveUndoStack.push({ id, oldDate, newDate });
+                if (moveUndoStack.length > MOVE_HISTORY_LIMIT) moveUndoStack.shift();
+                moveRedoStack = [];
+            }
+
+            // إبقاء نطاق العرض متزامناً مع أيام المجموعة الفعلية
+            const groupId = booking.groupId || booking.id;
+            const groupDays = state.bookings.filter(b => b.groupId === groupId || b.id === groupId);
+            if (groupDays.length) {
+                const sortedDates = groupDays.map(b => b.startDate).slice().sort();
+                const newRange = sortedDates[0] + ' to ' + sortedDates[sortedDates.length - 1];
+                groupDays.forEach(b => { b.originalRange = newRange; });
+            }
+
+            const fmtOld = oldDate.split('-').reverse().join('/');
+            const fmtNew = newDate.split('-').reverse().join('/');
+            const logMsg = 'تم نقل حجز - ' + booking.companyName + ' - من ' + fmtOld + ' إلى ' + fmtNew;
+
+            addNotification(logMsg, 'add', newDate);
+            showToast(logMsg, 'success', newDate);
+
+            state.activityLogs.unshift({
+                type:         'نقل',
+                company:      booking.companyName,
+                hallName:     booking.hallName || '',
+                user:         state.currentUserEmail,
+                date:         new Date().toLocaleDateString('ar-EG'),
+                time:         new Date().toLocaleTimeString('ar-EG'),
+                isoTimestamp: new Date().toISOString()
+            });
+
+            saveLocal();
+            render();
+        }
+
+        function performUndo() {
+            if (!moveUndoStack.length) return;
+            const action = moveUndoStack[moveUndoStack.length - 1];
+            const booking = state.bookings.find(b => b.id === action.id);
+            if (!booking || booking.startDate !== action.newDate) {
+                // الحجز اتغيّر أو اتحذف من وقتها، نلغي هذه العملية من السجل
+                moveUndoStack.pop();
+                render();
+                return;
+            }
+            moveBookingToDate(action.id, action.oldDate, true);
+            if (booking.startDate === action.oldDate) {
+                moveUndoStack.pop();
+                moveRedoStack.push(action);
+            }
+            render();
+        }
+
+        function performRedo() {
+            if (!moveRedoStack.length) return;
+            const action = moveRedoStack[moveRedoStack.length - 1];
+            const booking = state.bookings.find(b => b.id === action.id);
+            if (!booking || booking.startDate !== action.oldDate) {
+                moveRedoStack.pop();
+                render();
+                return;
+            }
+            moveBookingToDate(action.id, action.newDate, true);
+            if (booking.startDate === action.newDate) {
+                moveRedoStack.pop();
+                moveUndoStack.push(action);
+            }
+            render();
+        }
+
         function checkConflict(hallId, date, startTime, endTime, ignoreId = null, ignoreGroup = false) {
             return state.bookings.some(b => {
                 if (ignoreId) {
@@ -1635,6 +1955,179 @@
                 if (isFullDayNew || isFullDayExisting) return true;
                 return (startTime < b.endTime && endTime > b.startTime);
             });
+        }
+
+        // ─── Touch-based Drag & Drop (Mobile long-press) ──────────────────
+        // HTML5's native drag events don't work reliably via touch on mobile
+        // browsers, so this reimplements the same "move booking to another
+        // day" behavior using touchstart/touchmove/touchend + a long-press,
+        // reusing moveBookingToDate() so the underlying logic stays identical.
+        let touchDragId = null;
+        let touchDragTimer = null;
+        let touchDragActive = false;
+        let touchStartX = 0, touchStartY = 0;
+        let touchGhostEl = null;
+        let touchCurrentDayCell = null;
+        let touchSourceEl = null;
+
+        const TOUCH_LONG_PRESS_MS = 1000;
+        const TOUCH_MOVE_TOLERANCE = 10;
+
+        function clearTouchDragTimer() {
+            if (touchDragTimer) {
+                clearTimeout(touchDragTimer);
+                touchDragTimer = null;
+            }
+        }
+
+        function handleBookingTouchStart(e, id) {
+            const booking = state.bookings.find(b => b.id === id);
+            const canDrag = booking && (state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail);
+            if (!canDrag) return;
+
+            const touch = e.touches[0];
+            if (!touch) return;
+
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchDragId = id;
+            touchDragActive = false;
+            touchSourceEl = e.currentTarget;
+            clearTouchDragTimer();
+
+            // نلغي قدرة العنصر على بدء سحب HTML5 الأصلي أثناء اللمس، لأن
+            // كروم/إيدج على أندرويد بيحاولوا ياخدوا التحكم في اللمسة الطويلة
+            // لأنفسهم (سحب أصلي/تحديد) ده بيلغي لمساتنا فجأة (touchcancel)
+            // وبيرجّع العنصر مكانه. بنرجّع draggable=true تاني بعد ما اللمس يخلص
+            // عشان السحب بالماوس على الديسكتوب يفضل شغال زي ما هو.
+            touchSourceEl.setAttribute('draggable', 'false');
+
+            touchDragTimer = setTimeout(() => {
+                touchDragTimer = null;
+                startTouchDrag(touch.clientX, touch.clientY);
+            }, TOUCH_LONG_PRESS_MS);
+        }
+
+        function startTouchDrag(x, y) {
+            if (!touchDragId || !touchSourceEl) return;
+            touchDragActive = true;
+            touchSourceEl.classList.add('dragging');
+
+            if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) {} }
+
+            touchGhostEl = touchSourceEl.cloneNode(true);
+            touchGhostEl.classList.add('touch-drag-ghost');
+            touchGhostEl.style.width = touchSourceEl.offsetWidth + 'px';
+            document.body.appendChild(touchGhostEl);
+            positionTouchGhost(x, y);
+        }
+
+        function positionTouchGhost(x, y) {
+            if (!touchGhostEl) return;
+            touchGhostEl.style.left = x + 'px';
+            touchGhostEl.style.top = y + 'px';
+        }
+
+        function restoreTouchDraggable() {
+            if (touchSourceEl) touchSourceEl.setAttribute('draggable', 'true');
+        }
+
+        function handleBookingTouchMove(e) {
+            if (!touchDragId) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+
+            if (!touchDragActive) {
+                // لسه مستنيين الضغطة المطولة تكتمل - لو المستخدم حرّك إصبعه
+                // بشكل واضح، يبقى غالبًا بيعمل سكرول عادي، فنلغي محاولة السحب
+                const dx = Math.abs(touch.clientX - touchStartX);
+                const dy = Math.abs(touch.clientY - touchStartY);
+                if (dx > TOUCH_MOVE_TOLERANCE || dy > TOUCH_MOVE_TOLERANCE) {
+                    clearTouchDragTimer();
+                    restoreTouchDraggable();
+                    touchDragId = null;
+                    touchSourceEl = null;
+                }
+                return;
+            }
+
+            // وضع السحب الفعلي: امنع سكرول الصفحة الافتراضي وحرّك العنصر الوهمي
+            e.preventDefault();
+            positionTouchGhost(touch.clientX, touch.clientY);
+            dragPointerY = touch.clientY;
+            startDragAutoScroll();
+
+            const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            const dayCell = elUnder ? elUnder.closest('.day-cell[data-date]') : null;
+            const navBtn = elUnder ? elUnder.closest('[data-month-nav]') : null;
+
+            if (navBtn) {
+                if (touchCurrentDayCell) { touchCurrentDayCell.classList.remove('drag-over'); touchCurrentDayCell = null; }
+                if (!navBtn.classList.contains('drag-over')) {
+                    document.querySelectorAll('[data-month-nav].drag-over').forEach(b => b.classList.remove('drag-over'));
+                    navBtn.classList.add('drag-over');
+                }
+                if (!monthSwitchTimer) {
+                    const delta = parseInt(navBtn.getAttribute('data-month-nav'), 10);
+                    monthSwitchTimer = setTimeout(() => {
+                        monthSwitchTimer = null;
+                        if (touchDragActive) changeMonth(delta);
+                    }, 650);
+                }
+                return;
+            }
+
+            document.querySelectorAll('[data-month-nav].drag-over').forEach(b => b.classList.remove('drag-over'));
+            clearMonthSwitchTimer();
+
+            if (dayCell !== touchCurrentDayCell) {
+                if (touchCurrentDayCell) touchCurrentDayCell.classList.remove('drag-over');
+                touchCurrentDayCell = dayCell;
+                if (touchCurrentDayCell) touchCurrentDayCell.classList.add('drag-over');
+            }
+        }
+
+        function cleanupTouchDrag() {
+            if (touchGhostEl) { touchGhostEl.remove(); touchGhostEl = null; }
+            restoreTouchDraggable();
+            document.querySelectorAll('.booking-tag.dragging').forEach(elx => elx.classList.remove('dragging'));
+            if (touchCurrentDayCell) touchCurrentDayCell.classList.remove('drag-over');
+            touchCurrentDayCell = null;
+            document.querySelectorAll('[data-month-nav].drag-over').forEach(b => b.classList.remove('drag-over'));
+            clearMonthSwitchTimer();
+            touchDragActive = false;
+            touchDragId = null;
+            touchSourceEl = null;
+            stopDragAutoScroll();
+        }
+
+        function handleBookingTouchEnd(e) {
+            clearTouchDragTimer();
+
+            if (!touchDragActive) {
+                restoreTouchDraggable();
+                touchDragId = null;
+                touchSourceEl = null;
+                return;
+            }
+
+            const id = touchDragId;
+            const dayCell = touchCurrentDayCell;
+            cleanupTouchDrag();
+
+            if (dayCell && id) {
+                const newDate = dayCell.getAttribute('data-date');
+                if (newDate) moveBookingToDate(id, newDate);
+            }
+
+            // امنع الـ "click" الوهمي اللي بيولّده المتصفح بعد اللمس، عشان
+            // منفتحش تفاصيل اليوم بالغلط بعد إتمام عملية السحب
+            e.preventDefault();
+        }
+
+        function handleBookingTouchCancel() {
+            clearTouchDragTimer();
+            cleanupTouchDrag();
         }
 
         function handleBookingSubmit(e) {
@@ -1972,6 +2465,11 @@
                 ` : '';
             }
 
+            // Remove any leftover attachment dropdowns from a previous render
+            // before wiping the list (they live under <body>, not under
+            // #modalContent, since toggleAttachmentDropdown() reparents them).
+            cleanupAttachmentDropdowns();
+
             content.innerHTML = bookings.map(b => {
                 const hall = HALLS.find(h => h.id === b.hallId);
                 const isOwner = b.createdBy === state.currentUserEmail;
@@ -2008,7 +2506,23 @@
                                         </div>
                                         ${b.createdAt ? `<div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg"><i data-lucide="calendar-clock" class="w-3 h-3"></i> تاريخ الإنشاء: ${new Date(b.createdAt).toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
                                     </div>
-                                    ${b.link ? `<a href="${b.link}" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> المرفقات</a>` : ''}
+                                    ${(() => {
+                                        const bLinks = getBookingLinks(b);
+                                        if (bLinks.length === 0) return '';
+                                        if (bLinks.length === 1) {
+                                            return `<a href="${bLinks[0]}" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> المرفقات</a>`;
+                                        }
+                                        const items = bLinks.map((url, i) => `<a href="${url}" target="_blank" rel="noopener"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> مرفق ${i + 1}</a>`).join('');
+                                        return `<div class="relative attachment-dropdown-container inline-block">
+                                            <button type="button" data-attach-target="attach-dd-${b.id}" onclick="toggleAttachmentDropdown(this, event)" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-100 cursor-pointer">
+                                                <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> المرفقات (${bLinks.length})
+                                            </button>
+                                            <div id="attach-dd-${b.id}" class="attachment-dropdown hidden">${items}</div>
+                                        </div>`;
+                                    })()}
+                                    <button onclick="emailBooking('${b.id}')" class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-white hover:bg-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors border border-emerald-100">
+                                        <i data-lucide="mail" class="w-3.5 h-3.5"></i> إرسال بالبريد
+                                    </button>
                                     <button onclick="printSingleBooking('${b.id}')" class="inline-flex items-center gap-1 text-xs font-bold text-[#6E1418] hover:text-white hover:bg-[#6E1418] bg-[#6E1418]/5 px-3 py-1.5 rounded-lg transition-colors border border-[#6E1418]/10">
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i> طباعة تفاصيل الحجز
                                     </button>
@@ -2035,6 +2549,7 @@
 
         function closeDetailsModal() {
             document.getElementById('detailsModal').classList.add('hidden');
+            cleanupAttachmentDropdowns();
         }
 
         function printSingleBooking(bookingId) {
@@ -2095,8 +2610,12 @@
                 ['تاريخ الإنشاء', createdAtDisplay],
             ];
 
-            if (b.link) {
-                rows.push(['رابط المرفقات', `<a href="${b.link}" target="_blank" style="color:#1d4ed8; font-weight:700;">${b.link}</a>`]);
+            const printLinks = getBookingLinks(b);
+            if (printLinks.length) {
+                const linksHtml = printLinks.map((url, i) =>
+                    `<div>${printLinks.length > 1 ? `مرفق ${i + 1}: ` : ''}<a href="${url}" target="_blank" style="color:#1d4ed8; font-weight:700;">${url}</a></div>`
+                ).join('');
+                rows.push(['روابط المرفقات', linksHtml]);
             }
 
             const rowsHtml = rows.map(r => `
@@ -2273,6 +2792,83 @@ ${notesDisplay ? `
             win.document.close();
         }
 
+        // --- Email Booking Details ---
+        const BOOKING_EMAIL_RECIPIENTS = [
+            'Ayman.Eltabey@restahotels.com',
+            'islam.farhood@restahotels.com',
+            'Metwally.Khalil@restahotels.com',
+            'mohamed.zaki@restahotels.com',
+            'waleed.fahmy@restahotels.com',
+            'mohamed.asalam@restahotels.com'
+        ];
+
+        function emailBooking(bookingId) {
+            const b = state.bookings.find(x => x.id == bookingId || x.id === bookingId);
+            if (!b) {
+                showToast('لم يتم العثور على بيانات الحجز', 'error');
+                return;
+            }
+
+            const hall = HALLS.find(h => h.id === b.hallId) || { name: b.hallId || 'غير معروف' };
+
+            // تحديد نطاق التاريخ الفعلي (بنفس منطق الطباعة)
+            let startDate = b.startDate, endDate = b.endDate || b.startDate;
+            if (b.originalRange && b.originalRange.includes(' to ')) {
+                const p = b.originalRange.split(' to ');
+                startDate = p[0]; endDate = p[1];
+            } else {
+                const gKey = b.groupId || b.id.toString().split('_d')[0];
+                const groupDays = state.bookings
+                    .filter(x => (x.groupId === gKey) || (x.id === gKey))
+                    .map(x => x.startDate).sort();
+                if (groupDays.length > 0) {
+                    startDate = groupDays[0];
+                    endDate   = groupDays[groupDays.length - 1];
+                }
+            }
+
+            const fmtDate = d => d ? d.split('-').reverse().join('/') : '-';
+            const dateRow = (startDate !== endDate)
+                ? `${fmtDate(startDate)} إلى ${fmtDate(endDate)}`
+                : fmtDate(startDate);
+
+            const timeDisplay = (b.startTime && b.endTime)
+                ? `${b.startTime} - ${b.endTime}`
+                : (b.startTime || 'يوم كامل');
+
+            const createdAtDisplay = b.createdAt
+                ? new Date(b.createdAt).toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})
+                : '-';
+
+            const lines = [
+                'تفاصيل الحجز - رستا بورسعيد',
+                '----------------------------------------',
+                `الشركة / الجهة: ${b.companyName || '-'}`,
+                `القاعة: ${hall.name}`,
+                `التاريخ: ${dateRow}`,
+                `الوقت: ${timeDisplay}`,
+                `الموظف المسؤول: ${b.employee || 'غير محدد'}`,
+                `رقم الهاتف: ${b.phone || 'لا يوجد رقم'}`,
+                `تم الإنشاء بواسطة: ${(b.createdBy || '-').split('@')[0]}`,
+                `تاريخ الإنشاء: ${createdAtDisplay}`,
+            ];
+
+            if (b.notes) {
+                lines.push('', `ملاحظات: ${b.notes}`);
+            }
+
+            const mailLinks = getBookingLinks(b);
+            if (mailLinks.length) {
+                lines.push('', mailLinks.length > 1 ? 'مرفقات (روابط):' : 'مرفقات (رابط):');
+                mailLinks.forEach((url, i) => lines.push(mailLinks.length > 1 ? `${i + 1}. ${url}` : url));
+            }
+
+            const subject = `تفاصيل الحجز - ${b.companyName || ''} - ${hall.name}`;
+            const body = lines.join('\n');
+
+            const mailtoUrl = `mailto:${BOOKING_EMAIL_RECIPIENTS.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoUrl;
+        }
 
         function cancelEdit() {
             state.editingBookingId = null;
@@ -2327,41 +2923,66 @@ ${notesDisplay ? `
 
                             <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-1 shrink-0"></div>
 
+                            <div class="flex items-center bg-slate-100 rounded-xl p-0.5 gap-0.5 shrink-0">
+                                <button onclick="performUndo()" ${moveUndoStack.length === 0 ? 'disabled' : ''} class="p-1.5 sm:p-2 text-slate-500 hover:text-[#6E1418] hover:bg-white rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-500" title="تراجع عن آخر نقل">
+                                    <i data-lucide="undo-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                                </button>
+                                <button onclick="performRedo()" ${moveRedoStack.length === 0 ? 'disabled' : ''} class="p-1.5 sm:p-2 text-slate-500 hover:text-[#6E1418] hover:bg-white rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-500" title="إعادة آخر نقل">
+                                    <i data-lucide="redo-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                                </button>
+                            </div>
+
                             <button onclick="toggleNotificationsModal()" class="relative p-2 sm:p-2.5 text-slate-500 hover:text-[#6E1418] hover:bg-slate-100 rounded-xl transition-all shrink-0" title="الإشعارات">
                                 <i data-lucide="bell" class="w-5 h-5"></i>
                                 ${state.notifications.length > 0 ? '<span class="notification-dot animate-pulse"></span>' : ''}
                             </button>
                             ` : ''}
-                            <button onclick="exportToExcel()" class="p-2 sm:p-2.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shrink-0" title="تصدير (Excel)">
+
+                            <!-- زر المزيد (موبايل فقط) -->
+                            <div class="relative shrink-0 sm:hidden" id="moreMenuContainer">
+                                <button onclick="toggleMoreMenu(event)" class="p-2 text-slate-500 hover:text-[#6E1418] hover:bg-slate-100 rounded-xl transition-all" title="المزيد">
+                                    <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                                </button>
+                                <div id="moreMenuDropdown" class="sync-dropdown hidden border border-slate-100">
+                                    <button onclick="exportToExcel(); toggleMoreMenu()">
+                                        <span class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                                        </span>
+                                        تصدير (Excel)
+                                    </button>
+                                    <button onclick="printUpcomingBookings(); toggleMoreMenu()">
+                                        <span class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+                                            <i data-lucide="printer" class="w-4 h-4 text-violet-600"></i>
+                                        </span>
+                                        طباعة الحجوزات القادمة
+                                    </button>
+                                    ${!isGuest() ? `
+                                    <button onclick="toggleDeletedBookingsModal(); toggleMoreMenu()">
+                                        <span class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                                            <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                                        </span>
+                                        الحجوزات المحذوفة
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <button onclick="exportToExcel()" class="hidden sm:inline-block p-2 sm:p-2.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shrink-0" title="تصدير (Excel)">
                                 <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
                             </button>
-                            <button onclick="printUpcomingBookings()" class="p-2 sm:p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all shrink-0" title="طباعة الحجوزات القادمة">
+                            <button onclick="printUpcomingBookings()" class="hidden sm:inline-block p-2 sm:p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all shrink-0" title="طباعة الحجوزات القادمة">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
                             </button>
                             ${!isGuest() ? `
-                            <button onclick="toggleDeletedBookingsModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0" title="الحجوزات المحذوفة">
+                            <button onclick="toggleDeletedBookingsModal()" class="hidden sm:inline-block p-2 sm:p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0" title="الحجوزات المحذوفة">
                                 <i data-lucide="trash-2" class="w-5 h-5"></i>
                             </button>
                             
                             <!-- زر المزامنة -->
-                            <div class="relative shrink-0" id="syncDropdownContainer">
-                                <button onclick="toggleSyncDropdown(event)" class="p-2 sm:p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all" title="خيارات المزامنة">
+                            <div class="relative shrink-0 hidden sm:block" id="syncDropdownContainer">
+                                <button onclick="syncToCloud()" class="p-2 sm:p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all" title="مزامنة مع السحابة">
                                     <i data-lucide="refresh-cw" class="w-5 h-5 ${state.isSyncing ? 'animate-spin text-[#A88A45]' : ''}"></i>
                                 </button>
-                                <div id="syncDropdown" class="sync-dropdown hidden border border-slate-100">
-                                    <button onclick="syncToCloud(); toggleSyncDropdown()">
-                                        <span class="w-8 h-8 rounded-lg bg-[#6E1418]/10 flex items-center justify-center shrink-0">
-                                            <i data-lucide="cloud-upload" class="w-4 h-4 text-[#6E1418]"></i>
-                                        </span>
-                                        مزامنة مع السحابة فوراً
-                                    </button>
-                                    <button onclick="exportToIcal(); toggleSyncDropdown()">
-                                        <span class="w-8 h-8 rounded-lg bg-[#A88A45]/10 flex items-center justify-center shrink-0">
-                                            <i data-lucide="calendar-check" class="w-4 h-4 text-[#A88A45]"></i>
-                                        </span>
-                                        تصدير لـ Google Calendar
-                                    </button>
-                                </div>
                             </div>
                             ` : ''}
 
@@ -2396,7 +3017,7 @@ ${notesDisplay ? `
                         <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <div class="absolute -left-8 -bottom-8 w-24 h-24 bg-[#A88A45]/30 rounded-full blur-xl"></div>
                         
-                        <h2 class="text-xl font-black mb-1 relative z-10">${getCurrentUserDisplayName()}</h2>
+                        <h2 class="text-xl font-black mb-1 relative z-10">${isGuest() ? 'زائر' : (state.currentUserEmail || 'زائر')}</h2>
                         <p class="text-sm text-white/70 mb-6 relative z-10 font-medium">إحصائيات الحجوزات لجميع القاعات</p>
                         
                         <div class="grid grid-cols-2 gap-4 relative z-10">
@@ -2469,11 +3090,11 @@ ${notesDisplay ? `
                             <h2 class="text-2xl font-black text-[#6E1418] tracking-tight">التقويم الشهري</h2>
                         </div>
                         <div class="flex bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-sm">
-                            <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            <button onclick="changeMonth(-1)" ondragover="handleMonthNavDragOver(event, -1)" ondragleave="handleMonthNavDragLeave(event)" data-month-nav="-1" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
                             <span class="px-6 py-2 text-base font-black text-[#6E1418] flex items-center min-w-[140px] justify-center tracking-wide">
                                 ${new Date(state.currentYear, state.currentMonth).toLocaleString('ar-EG', { month: 'long', year: 'numeric' })} (شهر ${state.currentMonth + 1})
                             </span>
-                            <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <button onclick="changeMonth(1)" ondragover="handleMonthNavDragOver(event, 1)" ondragleave="handleMonthNavDragLeave(event)" data-month-nav="1" class="p-2 hover:bg-white rounded-lg shadow-sm hover:shadow text-slate-600 hover:text-[#6E1418] transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                         </div>
                     </div>
                     ${renderCalendar(true)}
@@ -2518,8 +3139,17 @@ ${notesDisplay ? `
                 const tagsHtml = visibleBookings.map(b => {
                     const hall = HALLS.find(h => h.id === b.hallId);
                     const isMyBooking = b.createdBy === state.currentUserEmail;
+                    const canDrag = !isGuest() && (state.currentUserEmail === ADMIN_EMAIL || isMyBooking);
                     return `
-                        <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}" title="${hall.name}: ${b.companyName}">
+                        <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}"
+                             title="${hall.name}: ${b.companyName}${canDrag ? ' (اسحب لنقل الحجز ليوم آخر)' : ''}"
+                             draggable="${canDrag}"
+                             ondragstart="${canDrag ? `handleBookingDragStart(event, '${b.id}')` : ''}"
+                             ondragend="${canDrag ? 'handleBookingDragEnd(event)' : ''}"
+                             ontouchstart="${canDrag ? `handleBookingTouchStart(event, '${b.id}')` : ''}"
+                             ontouchmove="${canDrag ? 'handleBookingTouchMove(event)' : ''}"
+                             ontouchend="${canDrag ? 'handleBookingTouchEnd(event)' : ''}"
+                             ontouchcancel="${canDrag ? 'handleBookingTouchCancel(event)' : ''}">
                             <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" style="min-width:6px;"></div>
                             <span>${b.companyName}</span>
                         </div>
@@ -2532,7 +3162,12 @@ ${notesDisplay ? `
 
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 days.push(`
-                    <div onclick="handleDayClick('${dateStr}')" class="day-cell ${isToday ? 'today-active z-10' : ''} cursor-pointer group">
+                    <div onclick="handleDayClick('${dateStr}')"
+                         ondragover="handleDayDragOver(event)"
+                         ondragleave="handleDayDragLeave(event)"
+                         ondrop="handleDayDrop(event, '${dateStr}')"
+                         data-date="${dateStr}"
+                         class="day-cell ${isToday ? 'today-active z-10' : ''} cursor-pointer group">
                         <div class="flex items-center justify-between mb-1" style="flex-shrink:0;">
                             <span class="text-sm font-black w-7 h-7 flex items-center justify-center rounded-lg ${isToday ? 'bg-[#6E1418] text-white' : 'text-slate-500 group-hover:bg-slate-100 transition-colors'}">${i}</span>
                             ${totalCount > 0 ? `<span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${totalCount}</span>` : ''}
@@ -2564,6 +3199,13 @@ ${notesDisplay ? `
         function toggleSyncDropdown(e) {
             if (e) e.stopPropagation();
             const dd = document.getElementById('syncDropdown');
+            if (dd) dd.classList.toggle('hidden');
+        }
+
+        // ─── قائمة المزيد (موبايل) ──────────────────────────────────────
+        function toggleMoreMenu(e) {
+            if (e) e.stopPropagation();
+            const dd = document.getElementById('moreMenuDropdown');
             if (dd) dd.classList.toggle('hidden');
         }
 
@@ -2709,6 +3351,111 @@ ${notesDisplay ? `
             if (typeof lucide !== "undefined") lucide.createIcons();
         }
 
+        // ─── Attachment Links (multi-link support) ─────────────────────────
+        function addLinkField(value) {
+            const container = document.getElementById('linksContainer');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML =
+                '<input type="url" name="links[]" placeholder="https://..." dir="ltr" class="text-left flex-1">' +
+                '<button type="button" onclick="removeLinkField(this)" class="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="حذف الرابط"><i data-lucide="x" class="w-4 h-4"></i></button>';
+            container.appendChild(row);
+            if (typeof value === 'string') row.querySelector('input').value = value;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function removeLinkField(btn) {
+            const container = document.getElementById('linksContainer');
+            if (!container) return;
+            const row = btn.closest('div');
+            // Keep at least one (empty) row so the user always has a field to type into
+            if (container.children.length <= 1) {
+                row.querySelector('input').value = '';
+                return;
+            }
+            row.remove();
+        }
+
+        // Resets the links container back to a single empty field, then fills it
+        // with the given links (adding extra rows as needed). Falls back to the
+        // legacy single "link" field for bookings saved before this feature.
+        function setLinksInForm(links) {
+            const container = document.getElementById('linksContainer');
+            if (!container) return;
+            container.innerHTML =
+                '<div class="flex items-center gap-2">' +
+                '<input type="url" name="links[]" placeholder="https://..." dir="ltr" class="text-left flex-1">' +
+                '<button type="button" onclick="removeLinkField(this)" class="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="حذف الرابط"><i data-lucide="x" class="w-4 h-4"></i></button>' +
+                '</div>';
+            const list = (links && links.length) ? links : [''];
+            container.querySelector('input').value = list[0] || '';
+            for (let i = 1; i < list.length; i++) addLinkField(list[i]);
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function getLinksFromForm(form) {
+            return Array.from(form.querySelectorAll('input[name="links[]"]'))
+                .map(inp => inp.value.trim())
+                .filter(Boolean);
+        }
+
+        // Returns the attachment links of a booking, supporting both the new
+        // "links" array and the legacy single "link" string field.
+        function getBookingLinks(b) {
+            if (Array.isArray(b.links) && b.links.length) return b.links;
+            if (b.link) return [b.link];
+            return [];
+        }
+
+        // Called from the attachments button when more than one link exists.
+        // Toggles a dropdown of real <a target="_blank"> links instead of using
+        // window.open() from JS, because some Android WebView-based apps don't
+        // implement onCreateWindow()/setSupportMultipleWindows() and silently
+        // block window.open() while still handling normal anchor-tag clicks.
+        // Called from the attachments button when more than one link exists.
+        // Uses real <a target="_blank"> links inside a dropdown instead of
+        // window.open() from JS (see note on Android WebView above the old
+        // implementation this replaced).
+        //
+        // The dropdown is temporarily moved to <body> and positioned with
+        // "position: fixed" next to the button. This is necessary because the
+        // booking card it lives in uses "overflow: hidden" + "transform" (for
+        // its hover animation), which clips/repositions any absolutely
+        // positioned child — that's why only the first attachment used to be
+        // visible while the rest were clipped off.
+        function toggleAttachmentDropdown(btn, evt) {
+            if (evt) evt.stopPropagation();
+            const dd = document.getElementById(btn.dataset.attachTarget);
+            if (!dd) return;
+            // Close any other open attachment dropdowns first
+            document.querySelectorAll('.attachment-dropdown').forEach(el => {
+                if (el !== dd) el.classList.add('hidden');
+            });
+            const willOpen = dd.classList.contains('hidden');
+            dd.classList.toggle('hidden');
+            if (willOpen) {
+                document.body.appendChild(dd);
+                const rect = btn.getBoundingClientRect();
+                dd.style.position = 'fixed';
+                dd.style.top = (rect.bottom + 6) + 'px';
+                dd.style.left = rect.left + 'px';
+                dd.style.minWidth = rect.width + 'px';
+                // Keep the button reachable from the dropdown so outside-click
+                // detection (which checks .attachment-dropdown-container) still
+                // works after the dropdown has been reparented to <body>.
+                dd._ownerBtn = btn;
+            }
+        }
+
+        // Removes any attachment dropdowns that were reparented to <body> by
+        // toggleAttachmentDropdown(). Must be called whenever the bookings
+        // list that owns them is re-rendered or its modal is closed, otherwise
+        // the moved elements would be orphaned in the DOM.
+        function cleanupAttachmentDropdowns() {
+            document.querySelectorAll('body > .attachment-dropdown').forEach(el => el.remove());
+        }
+
         // ─── Global New Booking Modal ─────────────────────────────────────
         function openGlobalBookingForEdit(id, groupId) {
             const booking = state.bookings.find(b => b.id === id);
@@ -2753,7 +3500,7 @@ ${notesDisplay ? `
             form.querySelector('input[name="phone"]').value      = booking.phone      || '';
             form.querySelector('input[name="employee"]').value   = booking.employee   || '';
             form.querySelector('textarea[name="notes"]').value   = booking.notes      || '';
-            form.querySelector('input[name="link"]').value       = booking.link       || '';
+            setLinksInForm(getBookingLinks(booking));
 
             form.querySelector('button[type="submit"]').innerHTML =
                 '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ التعديلات المطبقة</span>';
@@ -2782,6 +3529,7 @@ ${notesDisplay ? `
                 form.querySelector('input[name="dateFrom"]').value = today;
                 form.querySelector('input[name="dateTo"]').value   = today;
                 form.querySelector('input[name="employee"]').value = getDefaultEmployeeName();
+                setLinksInForm([]);
                 form.querySelector('button[type="submit"]').innerHTML =
                     '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
                 const titleEl = document.getElementById('globalModalTitle');
@@ -2814,7 +3562,7 @@ ${notesDisplay ? `
                 startTime:   form.timeFrom.value,
                 endTime:     form.timeTo.value,
                 notes:       form.notes.value,
-                link:        form.link.value,
+                links:       getLinksFromForm(form),
                 createdBy:   isEditing
                     ? (state.bookings.find(b =>
                         b.groupId === state.editingBookingId || b.id === state.editingBookingId
@@ -2875,7 +3623,7 @@ ${notesDisplay ? `
                             startTime:     bookingData.startTime,
                             endTime:       bookingData.endTime,
                             notes:         bookingData.notes,
-                            link:          bookingData.link,
+                            links:         bookingData.links,
                             originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
                             _isDirty:      true
                         };
