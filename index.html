@@ -740,6 +740,100 @@
         </div>
     </div>
 
+    <!-- Archive Modal -->
+    <div id="archiveModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
+                        <i data-lucide="archive" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-xl tracking-wide">الأرشيف</h3>
+                        <p class="text-xs text-white/70 font-medium mt-0.5">أرشفة الشهور المنتهية لتسريع فتح التطبيق، مع إمكانية الاطلاع عليها أو استعادتها في أي وقت</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('archiveModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-5 space-y-6">
+                <!-- أرشفة شهر جديد (أدمن فقط) -->
+                <div id="archiveNewSection" class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <div class="flex items-center gap-2 text-[#6E1418] font-black text-sm mb-3">
+                        <i data-lucide="archive-restore" class="w-4 h-4"></i> أرشفة شهر منتهٍ
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <select id="archiveMonthSelect" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-[#6E1418] outline-none focus:border-[#A88A45] focus:ring-2 focus:ring-[#A88A45]/20 transition-all">
+                            <option value="">جاري التحميل...</option>
+                        </select>
+                        <button onclick="confirmArchiveSelectedMonth()" class="px-5 py-2.5 rounded-xl bg-[#6E1418] hover:bg-[#5a1013] text-white text-sm font-black transition-all shrink-0 flex items-center justify-center gap-2">
+                            <i data-lucide="archive" class="w-4 h-4"></i> أرشفة الشهر المحدد
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 font-medium mt-2">تظهر فقط الشهور السابقة للشهر الحالي والتي بها حجوزات لم تُؤرشف بعد.</p>
+                </div>
+
+                <!-- الأشهر المؤرشفة -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 text-[#6E1418] font-black text-sm">
+                            <i data-lucide="folder-archive" class="w-4 h-4"></i> الأشهر المؤرشفة
+                        </div>
+                        <button onclick="loadArchiveIndex()" class="p-2 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all" title="تحديث">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div id="archivedMonthsList" class="space-y-2.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Archive Detail (View) Modal -->
+    <div id="archiveDetailModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center modal-backdrop p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
+            <div class="px-6 py-5 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
+                        <i data-lucide="eye" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-xl tracking-wide" id="archiveDetailTitle">تفاصيل الشهر المؤرشف</h3>
+                        <p class="text-xs text-white/70 font-medium mt-0.5">عرض فقط — استخدم زر الاستعادة لإعادة الحجوزات إلى القائمة النشطة</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="archiveDetailRestoreBtn" onclick="restoreArchivedMonth(document.getElementById('archiveDetailModal').dataset.monthKey)" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-black flex items-center gap-1.5 transition-all" title="استعادة إلى القائمة النشطة">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> <span class="hidden sm:inline">استعادة</span>
+                    </button>
+                    <button onclick="document.getElementById('archiveDetailModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <div class="table-responsive">
+                    <table class="users-table mt-0">
+                        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th class="text-slate-500 py-3 w-10 text-center">#</th>
+                                <th class="text-[#6E1418] py-3">اسم العميل</th>
+                                <th class="text-[#6E1418] py-3">الهاتف</th>
+                                <th class="text-[#6E1418] py-3">القاعة</th>
+                                <th class="text-[#6E1418] py-3">التاريخ</th>
+                                <th class="text-[#6E1418] py-3">الوقت</th>
+                                <th class="text-[#6E1418] py-3">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveDetailTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Global New Booking Modal -->
     <div id="globalBookingModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center modal-backdrop p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col animate-fade-in border border-slate-100">
@@ -1072,7 +1166,8 @@
         // ─── Default Employee Name Based on Logged-in User ────────────────
         const DEFAULT_EMPLOYEE_BY_EMAIL = {
             "salama.m@gmail.com": "محمد عبد السلام",
-            "rihan@gmail.com": "علاء شحاته"
+            "rihan@gmail.com": "علاء شحاته",
+            "marwa@gmail.com": "somaya"
         };
         function getDefaultEmployeeName() {
             return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
@@ -1155,9 +1250,6 @@
 
         function init() {
             if(typeof lucide!=="undefined") lucide.createIcons();
-
-            // تسجيل دخول تلقائي بحساب marwa@gmail.com
-            localStorage.setItem('hotel_app_email', state.currentUserEmail);
             
             // Ensure Admin Exists
             const ADMIN_PASS = 'Hamada@1968';
@@ -1171,21 +1263,6 @@
                 state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
                 saveUsers();
                 markUserDirty(ADMIN_EMAIL);
-            }
-
-            // Ensure marwa@gmail.com exists with password 12345
-            const MARWA_EMAIL = 'marwa@gmail.com';
-            const MARWA_PASS = '12345';
-            const marwaIndex = state.users.findIndex(u => u.email === MARWA_EMAIL);
-            if (marwaIndex !== -1) {
-                if (state.users[marwaIndex].password !== MARWA_PASS) {
-                    state.users[marwaIndex].password = MARWA_PASS;
-                    saveUsers();
-                }
-            } else {
-                state.users.push({ email: MARWA_EMAIL, password: MARWA_PASS, createdAt: new Date().toISOString() });
-                saveUsers();
-                markUserDirty(MARWA_EMAIL);
             }
 
             // تنظيف لمرة واحدة: حذف جميع الحسابات والإبقاء فقط على الحسابات المسموح بها
@@ -3091,6 +3168,12 @@ ${notesDisplay ? `
                                         الحجوزات المحذوفة
                                     </button>
                                     ` : ''}
+                                    <button onclick="toggleArchiveModal(); toggleMoreMenu()">
+                                        <span class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                                            <i data-lucide="archive" class="w-4 h-4 text-[#A88A45]"></i>
+                                        </span>
+                                        الأرشيف
+                                    </button>
                                     ${state.currentUserEmail === ADMIN_EMAIL ? `
                                     <button onclick="exportBackup(); toggleMoreMenu()">
                                         <span class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
@@ -3118,6 +3201,11 @@ ${notesDisplay ? `
                             <button onclick="toggleDeletedBookingsModal()" class="hidden sm:inline-block p-2 sm:p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0" title="الحجوزات المحذوفة">
                                 <i data-lucide="trash-2" class="w-5 h-5"></i>
                             </button>
+                            ` : ''}
+                            <button onclick="toggleArchiveModal()" class="hidden sm:inline-block p-2 sm:p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all shrink-0" title="الأرشيف">
+                                <i data-lucide="archive" class="w-5 h-5"></i>
+                            </button>
+                            ${!isGuest() ? `
                             <!-- زر المزامنة -->
                             <div class="relative shrink-0 hidden sm:block" id="syncDropdownContainer">
                                 <button onclick="syncToCloud()" class="p-2 sm:p-2.5 text-slate-500 hover:text-[#A88A45] hover:bg-amber-50 rounded-xl transition-all" title="مزامنة مع السحابة">
@@ -4367,6 +4455,330 @@ ${notesDisplay ? `
                     (r.startDate  || '').toLowerCase().includes(q)
                 );
             renderDeletedBookingsTable(filtered);
+        }
+
+        // ─── الأرشيف الشهري ─────────────────────────────────────────────
+        // الفكرة: بدل تحميل كل الحجوزات (بما فيها الشهور القديمة) في كل مرة يُفتح
+        // فيها التطبيق، يمكن أرشفة شهر كامل بكل تفاصيله في عقدة منفصلة بالسحابة
+        // (archive/{monthKey})، فتُحذف من عقدة bookings الرئيسية التي تُحمَّل دائماً،
+        // ولا يتم تحميل بيانات الأرشيف إلا عند فتح نافذة الأرشيف صراحة أو عرض شهر بعينه.
+        function monthKeyOf(dateStr) {
+            return (dateStr || '').slice(0, 7); // "YYYY-MM"
+        }
+
+        function monthKeyLabel(monthKey) {
+            const parts = (monthKey || '').split('-').map(Number);
+            const y = parts[0], m = parts[1];
+            if (!y || !m) return monthKey;
+            const d = new Date(y, m - 1, 1);
+            return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' });
+        }
+
+        function currentMonthKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        // الأشهر القابلة للأرشفة: أشهر ماضية بالكامل (قبل الشهر الحالي) وبها حجوزات نشطة
+        function getArchivableMonths() {
+            const nowKey = currentMonthKey();
+            const counts = {};
+            state.bookings.forEach(b => {
+                const mk = monthKeyOf(b.startDate);
+                if (!mk || mk >= nowKey) return;
+                counts[mk] = (counts[mk] || 0) + 1;
+            });
+            return Object.entries(counts)
+                .map(([monthKey, count]) => ({ monthKey, count }))
+                .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+        }
+
+        // خاصية الأرشفة/الاستعادة/الحذف النهائي مقصورة على الأدمن فقط.
+        // بقية المستخدمين والزوار يمكنهم فقط تصفح الأرشيف وعرض تفاصيله.
+        function isArchiveAdmin() {
+            return state.currentUserEmail === ADMIN_EMAIL;
+        }
+
+        async function toggleArchiveModal() {
+            const modal = document.getElementById('archiveModal');
+            const newSection = document.getElementById('archiveNewSection');
+            if (newSection) newSection.style.display = isArchiveAdmin() ? '' : 'none';
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                if (isArchiveAdmin()) populateArchivableMonthsSelect();
+                await loadArchiveIndex();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function populateArchivableMonthsSelect() {
+            const select = document.getElementById('archiveMonthSelect');
+            if (!select) return;
+            const months = getArchivableMonths();
+            if (months.length === 0) {
+                select.innerHTML = `<option value="">لا توجد أشهر سابقة قابلة للأرشفة</option>`;
+                select.disabled = true;
+                return;
+            }
+            select.disabled = false;
+            select.innerHTML = months.map(m =>
+                `<option value="${m.monthKey}">${monthKeyLabel(m.monthKey)} — ${m.count} حجز</option>`
+            ).join('');
+        }
+
+        function confirmArchiveSelectedMonth() {
+            if (!isArchiveAdmin()) return;
+            const select = document.getElementById('archiveMonthSelect');
+            const monthKey = select && select.value;
+            if (!monthKey) return;
+            const label = monthKeyLabel(monthKey);
+            const count = state.bookings.filter(b => monthKeyOf(b.startDate) === monthKey).length;
+            if (count === 0) return;
+            if (!confirm(
+                `سيتم أرشفة ${count} حجز من شهر ${label}.\n` +
+                `ستُنقل هذه الحجوزات خارج القائمة النشطة لتسريع فتح التطبيق، ويمكن الاطلاع عليها أو استعادتها من الأرشيف في أي وقت.\n\n` +
+                `هل تريد المتابعة؟`
+            )) return;
+            archiveMonthNow(monthKey, label);
+        }
+
+        async function archiveMonthNow(monthKey, label) {
+            if (!isArchiveAdmin()) return;
+            const toArchive = state.bookings.filter(b => monthKeyOf(b.startDate) === monthKey);
+            if (toArchive.length === 0) { showToast('لا توجد حجوزات في هذا الشهر', 'error'); return; }
+
+            showSync(`جاري أرشفة شهر ${label} ...`);
+            try {
+                const meta = {
+                    monthKey,
+                    label,
+                    count: toArchive.length,
+                    archivedAt: new Date().toISOString(),
+                    archivedBy: state.currentUserEmail || ''
+                };
+                // نكتب أولاً نسخة الأرشيف الكاملة، ثم فهرس خفيف منفصل يُستخدم لعرض
+                // قائمة الأشهر المؤرشفة دون الحاجة لتحميل كل تفاصيل الحجوزات
+                await Promise.all([
+                    db.ref('archive/' + monthKey).set(toArchive),
+                    db.ref('archiveIndex/' + monthKey).set(meta)
+                ]);
+
+                // إزالتها من القائمة النشطة محلياً. لازم تُسجَّل كـ"حذف معلّق" (نفس آلية
+                // حذف الحجوزات العادية) وإلا فمنطق المزامنة هيرجعها تاني من نسخة السحابة
+                // القديمة لعقدة bookings، لأنها لسه موجودة هناك ولم تُعتبر "معدّلة محليًا"
+                toArchive.forEach(b => state.pendingDeletions.push(b.id));
+                state.bookings = state.bookings.filter(b => monthKeyOf(b.startDate) !== monthKey);
+                saveLocal();
+
+                showToast(`تمت أرشفة ${toArchive.length} حجز من شهر ${label} ✓`, 'success');
+                populateArchivableMonthsSelect();
+                await loadArchiveIndex();
+                render();
+                if (!document.getElementById('archiveModal').classList.contains('hidden')) {
+                    document.getElementById('archiveModal').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error(e);
+                showSync("فشلت الأرشفة: " + e.message, true);
+            } finally {
+                setTimeout(() => { const s = document.getElementById('sync-status'); if (s) s.style.display = 'none'; }, 3000);
+            }
+        }
+
+        async function loadArchiveIndex() {
+            const container = document.getElementById('archivedMonthsList');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="text-center py-8 text-slate-400 font-bold flex flex-col items-center gap-3">
+                    <i data-lucide="loader-2" class="w-7 h-7 text-slate-300 animate-spin"></i>
+                    <span>جاري تحميل قائمة الأشهر المؤرشفة...</span>
+                </div>`;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+
+            let months = [];
+            try {
+                const snap = await db.ref('archiveIndex').once('value');
+                const val = snap.val() || {};
+                months = Object.values(val);
+            } catch (e) {
+                months = [];
+            }
+            months.sort((a, b) => (b.monthKey || '').localeCompare(a.monthKey || ''));
+            window._allArchivedMonths = months;
+            renderArchivedMonthsList(months);
+        }
+
+        function renderArchivedMonthsList(months) {
+            const container = document.getElementById('archivedMonthsList');
+            if (!container) return;
+
+            if (!months || months.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-slate-400 font-bold flex flex-col items-center gap-3">
+                        <i data-lucide="archive" class="w-10 h-10 text-slate-300"></i>
+                        <span>لا توجد أشهر مؤرشفة حتى الآن</span>
+                    </div>`;
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = months.map(m => {
+                let archivedDate = '—';
+                try {
+                    archivedDate = new Date(m.archivedAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+                } catch (e) { /* تجاهل */ }
+
+                return `
+                <div class="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl p-4 hover:border-[#A88A45]/40 hover:shadow-sm transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 border border-amber-100">
+                            <i data-lucide="archive" class="w-5 h-5 text-[#A88A45]"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-black text-[#6E1418] text-sm">${m.label || m.monthKey}</div>
+                            <div class="text-xs text-slate-400 font-medium mt-0.5">${m.count || 0} حجز · أُرشف في ${archivedDate}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="viewArchivedMonth('${m.monthKey}')" class="p-2 text-slate-500 hover:text-[#6E1418] hover:bg-slate-100 rounded-xl transition-all" title="عرض التفاصيل">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        ${isArchiveAdmin() ? `
+                        <button onclick="restoreArchivedMonth('${m.monthKey}')" class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="استعادة إلى القائمة النشطة">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteArchivedMonthPermanently('${m.monthKey}')" class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="حذف نهائي">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        async function viewArchivedMonth(monthKey) {
+            const modal = document.getElementById('archiveDetailModal');
+            modal.classList.remove('hidden');
+            modal.dataset.monthKey = monthKey;
+            document.getElementById('archiveDetailTitle').textContent = monthKeyLabel(monthKey) + ' (مؤرشف)';
+            const restoreBtn = document.getElementById('archiveDetailRestoreBtn');
+            if (restoreBtn) restoreBtn.style.display = isArchiveAdmin() ? '' : 'none';
+
+            const tbody = document.getElementById('archiveDetailTableBody');
+            tbody.innerHTML = `
+                <tr><td colspan="7" class="text-center py-12 text-slate-400 font-bold">
+                    <div class="flex flex-col items-center gap-3">
+                        <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
+                        <span>جاري تحميل التفاصيل...</span>
+                    </div>
+                </td></tr>`;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+
+            let records = [];
+            try {
+                const snap = await db.ref('archive/' + monthKey).once('value');
+                records = fbValToArray(snap.val());
+            } catch (e) {
+                records = [];
+            }
+            records.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+            renderArchiveDetailTable(records);
+        }
+
+        function renderArchiveDetailTable(records) {
+            const tbody = document.getElementById('archiveDetailTableBody');
+            if (!records || records.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="7" class="text-center py-16 text-slate-400 font-bold">
+                        <div class="flex flex-col items-center gap-3">
+                            <i data-lucide="inbox" class="w-12 h-12 text-slate-300"></i>
+                            <span>لا توجد بيانات</span>
+                        </div>
+                    </td></tr>`;
+                if (typeof lucide !== "undefined") lucide.createIcons();
+                return;
+            }
+
+            const fmtDate = d => d ? String(d).split('-').reverse().join('/') : '—';
+
+            tbody.innerHTML = records.map((b, i) => {
+                const hall = HALLS.find(h => h.id === b.hallId);
+                return `
+                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <td class="px-3 py-3 text-xs font-bold text-slate-300 text-center w-8">${i + 1}</td>
+                    <td class="px-3 py-3 font-bold text-[#6E1418] text-sm max-w-[160px]">
+                        <div class="truncate" title="${(b.companyName || '').replace(/"/g, '&quot;')}">${b.companyName || '—'}</div>
+                    </td>
+                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap" style="direction:ltr; text-align:right;">${b.phone || '—'}</td>
+                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${hall ? hall.name : (b.hallName || '—')}</td>
+                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${fmtDate(b.startDate)}${b.endDate && b.endDate !== b.startDate ? ' → ' + fmtDate(b.endDate) : ''}</td>
+                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${b.startTime || ''}${b.endTime ? ' - ' + b.endTime : ''}</td>
+                    <td class="px-3 py-3 text-sm text-slate-600 max-w-[220px]">
+                        <div class="truncate" title="${(b.notes || '').replace(/"/g, '&quot;')}">${b.notes || '—'}</div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        async function restoreArchivedMonth(monthKey) {
+            if (!isArchiveAdmin()) return;
+            if (!monthKey) return;
+            const label = monthKeyLabel(monthKey);
+            if (!confirm(`سيتم استعادة جميع حجوزات شهر ${label} إلى القائمة النشطة وحذفها من الأرشيف.\n\nهل تريد المتابعة؟`)) return;
+
+            showSync(`جاري استعادة شهر ${label} ...`);
+            try {
+                const snap = await db.ref('archive/' + monthKey).once('value');
+                const records = fbValToArray(snap.val());
+                if (records.length === 0) { showSync("لا توجد بيانات لاستعادتها", true); return; }
+
+                // نعلّمها كـ"معدَّلة محليًا" (_isDirty) وإلا فمنطق المزامنة هيتجاهلها
+                // ويعتبر نسخة السحابة الحالية (اللي ملهاش هذه الحجوزات) هي الصح
+                const existingIds = new Set(state.bookings.map(b => String(b.id)));
+                records.forEach(r => { if (!existingIds.has(String(r.id))) state.bookings.push({ ...r, _isDirty: true }); });
+
+                await Promise.all([
+                    db.ref('archive/' + monthKey).remove(),
+                    db.ref('archiveIndex/' + monthKey).remove()
+                ]);
+
+                saveLocal();
+                showToast(`تمت استعادة ${records.length} حجز من شهر ${label} ✓`, 'success');
+                document.getElementById('archiveDetailModal').classList.add('hidden');
+                populateArchivableMonthsSelect();
+                await loadArchiveIndex();
+                render();
+            } catch (e) {
+                console.error(e);
+                showSync("فشلت الاستعادة: " + e.message, true);
+            } finally {
+                setTimeout(() => { const s = document.getElementById('sync-status'); if (s) s.style.display = 'none'; }, 3000);
+            }
+        }
+
+        async function deleteArchivedMonthPermanently(monthKey) {
+            if (!isArchiveAdmin()) return;
+            const label = monthKeyLabel(monthKey);
+            if (!confirm(`تحذير: سيتم حذف جميع حجوزات شهر ${label} نهائياً من الأرشيف ولن يمكن التراجع عن ذلك.\n\nهل أنت متأكد؟`)) return;
+            if (!confirm(`تأكيد أخير: سيتم فقدان بيانات شهر ${label} نهائياً. هل تريد المتابعة؟`)) return;
+
+            try {
+                await Promise.all([
+                    db.ref('archive/' + monthKey).remove(),
+                    db.ref('archiveIndex/' + monthKey).remove()
+                ]);
+                showToast(`تم حذف أرشيف شهر ${label} نهائياً`, 'success');
+                await loadArchiveIndex();
+            } catch (e) {
+                console.error(e);
+                showToast("فشل الحذف: " + e.message, 'error');
+            }
         }
 
         // ─── Print Upcoming Bookings ───────────────────────────────────────
