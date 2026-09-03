@@ -1330,7 +1330,7 @@
 
         // إخفاء شاشة الترحيب بعد جاهزية التطبيق مع ضمان ظهورها لفترة كافية لرؤية الحركة
         function hideRestaSplashScreen() {
-            const MIN_SPLASH_MS = 1600;
+            const MIN_SPLASH_MS = 3100;
             const splashStart = window.__restaSplashStart || Date.now();
             const elapsed = Date.now() - splashStart;
             const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
