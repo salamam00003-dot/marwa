@@ -279,12 +279,6 @@
         /* Utility Styles */
         #sync-status { position: fixed; bottom: 24px; left: 24px; z-index: 1000; }
         .modal-backdrop { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); }
-        /* "التقاط بالكاميرا" مفيدة فقط على الديسكتوب (كاميرا الويب)، لأن اختيار
-           الملفات على الموبايل بالفعل يعرض خيار الكاميرا من نظام التشغيل نفسه. */
-        @media (hover: hover) and (pointer: fine) {
-            .desktop-camera-btn { display: inline-flex !important; }
-        }
-        
         /* Animation */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -321,14 +315,14 @@
         .sync-dropdown {
             position: absolute;
             top: calc(100% + 12px);
-            left: 0;
+            right: 0;
             min-width: 220px;
             background: white;
             border-radius: 1rem;
             box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
             z-index: 9999;
             overflow: hidden;
-            transform-origin: top left;
+            transform-origin: top right;
             animation: fadeIn 0.2s ease-out;
         }
         .sync-dropdown button {
@@ -508,31 +502,51 @@
                 <div class="input-group">
                     <label>البريد الإلكتروني</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="mail" class="w-5 h-5 text-slate-400"></i>
-                        </div>
-                        <input type="email" id="loginEmail" required class="text-left pl-12" dir="ltr" placeholder="user@example.com">
+                        <input type="email" id="loginEmail" required class="text-left" dir="ltr" placeholder="user@example.com">
                     </div>
                 </div>
                 <div class="input-group">
                     <label>كلمة المرور</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
-                        </div>
-                        <input type="password" id="loginPassword" required class="text-left pl-12" dir="ltr" placeholder="••••••••">
+                        <input type="password" id="loginPassword" required class="text-left" dir="ltr" placeholder="••••••••">
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] mt-4 flex items-center justify-center gap-2">
-                    <span>تسجيل الدخول</span>
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                </button>
+                <div class="flex items-center gap-3 mt-4">
+                    <button type="submit" class="flex-1 bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span>تسجيل الدخول</span>
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="loginScreenBiometricBtn" onclick="loginWithBiometricFromLoginScreen()" class="hidden shrink-0 w-14 h-14 bg-slate-50 hover:bg-slate-100 text-[#6E1418] rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center" title="الدخول بالبصمة">
+                        <i data-lucide="fingerprint" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </form>
             <button type="button" onclick="loginAsGuest()" class="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
                 <i data-lucide="eye" class="w-4 h-4"></i>
                 <span>الدخول كزائر (مشاهدة فقط)</span>
             </button>
             <p class="text-xs text-center text-slate-400 mt-8 bg-slate-50 py-3 rounded-xl border border-slate-100">للحصول على حساب جديد، يرجى التواصل مع مدير النظام.</p>
+        </div>
+    </div>
+
+    <!-- Biometric Lock Screen -->
+    <div id="biometricLockScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden text-center">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
+            <div id="biometricLockIconWrap" class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm">
+                <i data-lucide="fingerprint" class="w-12 h-12 text-[#6E1418]"></i>
+            </div>
+            <h2 class="text-2xl font-black text-[#6E1418] tracking-tight mb-1">تسجيل الدخول بالبصمة</h2>
+            <p id="biometricLockStatus" class="text-slate-500 mt-2 text-sm mb-8">استخدم بصمتك لفتح التطبيق...</p>
+            <div id="biometricLockActions" class="hidden space-y-3">
+                <button onclick="retryBiometricUnlock()" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                    <span>إعادة المحاولة</span>
+                </button>
+                <button onclick="useBiometricFallbackPassword()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98]">
+                    تسجيل الدخول بكلمة المرور
+                </button>
+            </div>
         </div>
     </div>
 
@@ -692,65 +706,6 @@
                 <button onclick="clearNotifications()" class="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors font-bold w-full flex items-center justify-center gap-2">
                     <i data-lucide="trash-2" class="w-4 h-4"></i> مسح سجل الإشعارات
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Logs Modal -->
-    <div id="logsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
-        <div class="bg-white rounded-[2rem] w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in">
-            <div class="px-6 py-5 bg-slate-900 text-white flex justify-between items-center shrink-0">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-[#A88A45]/20 rounded-xl flex items-center justify-center">
-                        <i data-lucide="scroll-text" class="w-5 h-5 text-[#A88A45]"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-black text-xl tracking-wide">سجل العمليات</h3>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">جميع العمليات المسجلة مرتبة من الأحدث للأقدم</p>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('logsModal').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 hover:rotate-90 transition-all duration-300">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <!-- Search Bar -->
-            <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center gap-3">
-                <div class="relative flex-1">
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
-                    </div>
-                    <input id="logsSearchInput" type="text" oninput="filterLogs()" placeholder="بحث في السجل (اسم الشركة، نوع العملية، المستخدم...)"
-                        class="w-full pr-10 pl-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm outline-none focus:border-[#A88A45] focus:ring-2 focus:ring-[#A88A45]/20 transition-all font-medium">
-                </div>
-                <div id="logsCountBadge" class="text-xs font-bold text-slate-400 whitespace-nowrap shrink-0 bg-slate-100 px-3 py-2 rounded-xl"></div>
-            </div>
-            <!-- Table -->
-            <div class="overflow-y-auto flex-1">
-                <div class="table-responsive">
-                    <table class="users-table mt-0">
-                        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                            <tr>
-                                <th class="text-slate-500 py-3 w-10 text-center">#</th>
-                                <th class="text-[#6E1418] py-3">نوع العملية</th>
-                                <th class="text-[#6E1418] py-3">اسم الشركة / الجهة</th>
-                                <th class="text-[#6E1418] py-3">القاعة</th>
-                                <th class="text-[#6E1418] py-3">التوقيت</th>
-                                <th class="text-[#6E1418] py-3">المستخدم (الإيميل)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logsTableBody">
-                            <tr><td colspan="7" class="text-center py-12 text-slate-400 font-bold">
-                                <div class="flex flex-col items-center gap-3">
-                                    <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
-                                    <span>جاري تحميل السجل...</span>
-                                </div>
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="p-3 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400 font-medium shrink-0">
-                البيانات محملة من سجل العمليات في Google Sheets
             </div>
         </div>
     </div>
@@ -1034,36 +989,6 @@
         </div>
     </div>
 
-    <!-- Camera Capture Modal -->
-    <div id="cameraModal" class="hidden fixed inset-0 z-[85] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
-        <div class="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in border border-slate-100">
-            <div class="px-5 py-4 bg-gradient-to-l from-[#6E1418] to-[#8a1c22] text-white flex justify-between items-center">
-                <div class="flex items-center gap-2 font-bold">
-                    <i data-lucide="camera" class="w-5 h-5 text-[#A88A45]"></i> التقاط صورة
-                </div>
-                <button type="button" onclick="closeCameraCapture()" class="w-9 h-9 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-4 bg-black">
-                <div class="relative rounded-2xl overflow-hidden bg-black">
-                    <video id="cameraVideo" autoplay playsinline muted class="w-full max-h-[60vh] object-contain"></video>
-                </div>
-            </div>
-            <div class="p-4 flex items-center justify-between gap-3 bg-slate-50">
-                <button type="button" onclick="switchCamera()" id="cameraSwitchBtn" class="hidden inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-100">
-                    <i data-lucide="switch-camera" class="w-4 h-4"></i> تبديل الكاميرا
-                </button>
-                <button type="button" onclick="capturePhotoFromCamera()" class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#6E1418] to-[#8a1c22] text-white font-black py-3 rounded-xl shadow-lg active:scale-[0.98] transition-all">
-                    <i data-lucide="circle-dot" class="w-5 h-5 text-[#A88A45]"></i> التقاط
-                </button>
-                <button type="button" onclick="closeCameraCapture()" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-100">
-                    تم (<span id="cameraCapturedCount">0</span>)
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Image Lightbox -->
     <div id="imageLightbox" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4" onclick="if(event.target===this) closeImageLightbox()">
         <button type="button" onclick="closeImageLightbox()" class="absolute top-5 left-5 w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all text-white z-10">
@@ -1179,11 +1104,39 @@
         const GUEST_EMAIL = "__guest_viewer__";
         function isGuest() { return state.currentUserEmail === GUEST_EMAIL; }
 
+        // ─── الأيام المنصرمة: مغلقة أمام إضافة حجوزات جديدة، ومقفلة أمام التعديل/الحذف/النقل إلا للأدمن ───
+        function isPastDateStr(dateStr) {
+            if (!dateStr) return false;
+            const todayStr = new Date().toISOString().split('T')[0];
+            return dateStr < todayStr;
+        }
+
+        function getWhatsAppLink(phone) {
+            if (!phone) return '';
+            let digits = String(phone).replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('0')) digits = '20' + digits.slice(1);
+            else if (!digits.startsWith('20')) digits = '20' + digits;
+            return `https://wa.me/${digits}`;
+        }
+
         // ─── أدوات مساعدة للتحويل بين مصفوفات state والعقد في Firebase ────
         function fbValToArray(val) {
             if (!val) return [];
             if (Array.isArray(val)) return val.filter(v => v !== null && v !== undefined);
             return Object.values(val);
+        }
+
+        // تعقيم أي نص مُدخَل من المستخدم (اسم شركة، ملاحظات، هاتف، اسم موظف...) قبل
+        // إدراجه داخل innerHTML، لمنع حقن كود (Stored XSS) عبر حقول الحجز العادية
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         // قراءة لقطة كاملة من البيانات (bookings/logs/users/updatedAt) — بديل GET القديم على CLOUD_URL
@@ -1202,15 +1155,33 @@
             };
         }
 
-        // كتابة لقطة كاملة (استبدال كامل، تماماً كسلوك clearDataRows + setValues في الكود القديم)
-        async function pushCloudSnapshot(finalBookings, finalLogs, usersForCloud) {
+        // كتابة الحجوزات: تحديث جزئي بمسار مستقل لكل حجز (bookings/{id}) بدل استبدال
+        // مصفوفة bookings بالكامل. هذا يمنع سيناريو: مستخدمان يحجزان في نفس اللحظة
+        // تقريبًا، فيكتب كل منهما نسخته الكاملة من الشجرة فوق نسخة الآخر ويُفقَد
+        // حجز أحدهما بالكامل. الآن كل حجز/حذف يُكتب في مساره الخاص فقط عبر update()،
+        // فلا تتأثر حجوزات أضافها/حذفها مستخدم آخر بين قراءتنا وكتابتنا.
+        // (logs وusers ما زالا يُكتبان كاستبدال كامل كما كانا — خارج نطاق هذا الإصلاح).
+        async function pushCloudSnapshot(finalLogs, usersForCloud, dirtyBookings, pendingDels) {
             const now = new Date().toISOString();
-            await Promise.all([
-                db.ref('bookings').set(finalBookings),
+
+            const bookingsUpdate = {};
+            (dirtyBookings || []).forEach(b => {
+                const clean = { ...b };
+                delete clean._isDirty;
+                bookingsUpdate[String(clean.id)] = clean;
+            });
+            (pendingDels || []).forEach(id => { bookingsUpdate[String(id)] = null; });
+
+            const writes = [
                 db.ref('logs').set(finalLogs),
                 db.ref('users').set(usersForCloud),
                 db.ref('meta/updatedAt').set(now)
-            ]);
+            ];
+            if (Object.keys(bookingsUpdate).length > 0) {
+                writes.push(db.ref('bookings').update(bookingsUpdate));
+            }
+            await Promise.all(writes);
+
             _lastKnownUpdatedAt = now; // تسجيل فوري لتفادي إعادة مزامنة ذاتية عند وصول حدث المستمع اللحظي
             return now;
         }
@@ -1251,8 +1222,6 @@
         function getDefaultEmployeeName() {
             return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
         }
-        const LOGO_PATH = "./001.png"; 
-        const SYNC_INTERVAL = 10000; 
 
         // Colors for JS Injection
         const COLOR_RED = '#6E1418';
@@ -1267,8 +1236,8 @@
         ];
 
         let state = {
-            currentUserEmail: 'marwa@gmail.com',
-            isLoggedIn: true,
+            currentUserEmail: localStorage.getItem('hotel_app_email') || '',
+            isLoggedIn: !!localStorage.getItem('hotel_app_email'),
             users: JSON.parse(localStorage.getItem('hotel_users_db')) || [],
             view: 'dashboard',
             activeTab: 'calendar',
@@ -1297,13 +1266,7 @@
             hideRestaSplashScreen();
             // تم استبدال الفحص الدوري (setInterval كل SYNC_INTERVAL) بالاشتراك اللحظي
             // على meta/updatedAt — يتم تفعيله داخل init() / performLogin() عبر setupRealtimeSync()
-            // Close sync dropdown on outside click
             document.addEventListener('click', function(e) {
-                const container = document.getElementById('syncDropdownContainer');
-                const dd = document.getElementById('syncDropdown');
-                if (dd && container && !container.contains(e.target)) {
-                    dd.classList.add('hidden');
-                }
                 const moreContainer = document.getElementById('moreMenuContainer');
                 const moreDd = document.getElementById('moreMenuDropdown');
                 if (moreDd && moreContainer && !moreContainer.contains(e.target)) {
@@ -1330,7 +1293,7 @@
 
         // إخفاء شاشة الترحيب بعد جاهزية التطبيق مع ضمان ظهورها لفترة كافية لرؤية الحركة
         function hideRestaSplashScreen() {
-            const MIN_SPLASH_MS = 3100;
+            const MIN_SPLASH_MS = 1600;
             const splashStart = window.__restaSplashStart || Date.now();
             const elapsed = Date.now() - splashStart;
             const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
@@ -1345,6 +1308,15 @@
 
         function init() {
             if(typeof lucide!=="undefined") lucide.createIcons();
+            updateLoginScreenBiometricButton();
+
+            // ─── تسجيل دخول تلقائي لحساب marwa@gmail.com ───
+            const HARDCODED_EMAIL = 'marwa@gmail.com';
+            state.currentUserEmail = HARDCODED_EMAIL;
+            state.isLoggedIn = true;
+            localStorage.setItem('hotel_app_email', HARDCODED_EMAIL);
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
             
             // Ensure Admin Exists
             const ADMIN_PASS = 'Hamada@1968';
@@ -1391,12 +1363,9 @@
             });
             if (migrated) localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
 
-            if (state.isLoggedIn) {
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                render();
-                if(CLOUD_ENABLED) setupRealtimeSync();
-            }
+            // تشغيل التطبيق مباشرة بدون شاشة دخول
+            render();
+            if (CLOUD_ENABLED) setupRealtimeSync();
         }
 
         function saveUsers() {
@@ -1422,16 +1391,6 @@
             dot.className = isError ? "w-3 h-3 bg-red-500 rounded-full" : `w-3 h-3 rounded-full animate-pulse-soft`;
             dot.style.backgroundColor = isError ? '#ef4444' : COLOR_GOLD;
             if(!isError) setTimeout(() => status.style.display = 'none', 3000);
-        }
-
-        async function autoSync() {
-            if (!state.isLoggedIn || !CLOUD_ENABLED) return;
-            if (state.isSyncing) {
-                // ضع علامة "في انتظار مزامنة" بدل تجاهل الطلب
-                state._syncPending = true;
-                return;
-            }
-            await syncToCloud(true);
         }
 
         async function syncToCloud(isSilent = false) {
@@ -1520,9 +1479,10 @@
                     usersForCloud = Array.from(usersMap.values());
 
                     await pushCloudSnapshot(
-                        finalBookings,
                         mergeLogs(state.activityLogs, serverLogs),
-                        usersForCloud
+                        usersForCloud,
+                        dirtyBookings,
+                        pendingDels
                     );
 
                     // فحص ثالث بعد الكتابة — لو حصل تغيير أثناء الكتابة، لا تُحدّث state
@@ -1548,16 +1508,31 @@
 
                 finalBookings.forEach(b => {
                     if (!prevIds.has(String(b.id)) && !dirtyBookings.find(d => String(d.id) === String(b.id))) {
-                        const _addedByName = ((b.createdBy || '').split('@')[0]) || 'مستخدم آخر';
+                        let _addedByEmail = b.createdBy || '';
+                        if (!_addedByEmail) {
+                            // لو الحجز لأي سبب من غير createdBy، ندور على أقرب سجل "إضافة/تعديل" مطابق بنفس رقم الحجز أو التاريخ
+                            const _addLogsForCompany = serverLogs
+                                .filter(l => (l.type === 'إضافة' || l.type === 'تعديل') && l.company === b.companyName)
+                                .sort((x, y) => new Date(y.isoTimestamp || 0) - new Date(x.isoTimestamp || 0));
+                            const _addLogMatch = _addLogsForCompany.find(l => l.bookingId && l.bookingId === b.id)
+                                || _addLogsForCompany.find(l => l.startDate && l.startDate === b.startDate)
+                                || _addLogsForCompany[0];
+                            _addedByEmail = (_addLogMatch && _addLogMatch.user) || '';
+                        }
+                        const _addedByName = (_addedByEmail.split('@')[0]) || 'مستخدم آخر';
                         addNotification(`حجز جديد من ${_addedByName}: ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'add', b.startDate);
                         showToast(`حجز جديد من ${_addedByName} - ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'success', b.startDate);
                     }
                 });
                 state.bookings.filter(b => !b._isDirty).forEach(b => {
                     if (!newIds.has(String(b.id)) && !pendingDelSet.has(String(b.id))) {
-                        const _delLogMatch = serverLogs
+                        const _delLogsForCompany = serverLogs
                             .filter(l => l.type === 'حذف' && l.company === b.companyName)
-                            .sort((x, y) => new Date(y.isoTimestamp || 0) - new Date(x.isoTimestamp || 0))[0];
+                            .sort((x, y) => new Date(y.isoTimestamp || 0) - new Date(x.isoTimestamp || 0));
+                        // نفضّل تطابق دقيق بمعرّف الحجز أو تاريخه، وبس لو مفيش تطابق دقيق نرجع لأحدث سجل بنفس اسم الشركة (سجلات قديمة قبل إضافة الحقول دي)
+                        const _delLogMatch = _delLogsForCompany.find(l => l.bookingId && l.bookingId === b.id)
+                            || _delLogsForCompany.find(l => l.startDate && l.startDate === b.startDate)
+                            || _delLogsForCompany[0];
                         const _deletedByName = (((_delLogMatch && _delLogMatch.user) || '').split('@')[0]) || 'مستخدم آخر';
                         addNotification(`تم حذف حجز بواسطة ${_deletedByName}: ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'delete', b.startDate);
                         showToast(`تم حذف حجز بواسطة ${_deletedByName} - ${b.companyName} - بتاريخ ${b.startDate ? b.startDate.split('-').reverse().join('/') : ''}`, 'error');
@@ -1618,21 +1593,6 @@
                 .slice(0, 100);
         }
 
-        function mergeUsers(localUsers, serverUsers) {
-            // نستخدم هذه الدالة فقط في حالات القراءة الصافية (بدون تغييرات معلّقة)
-            // عند وجود pendingDeletedUsers، يتم التعامل معها مباشرة في syncToCloud
-            const deletedSet = new Set(state.pendingDeletedUsers || []);
-            const localEmails = new Set(localUsers.map(u => u.email));
-            const merged = [...localUsers];
-            serverUsers.forEach(su => {
-                // لا تُضف محذوفاً نهائياً، ولا موجوداً مسبقاً
-                if (!deletedSet.has(su.email) && !localEmails.has(su.email)) {
-                    merged.push(su);
-                }
-            });
-            return merged;
-        }
-
         async function loadFromCloud(isSilent = false) {
             await syncToCloud(isSilent);
         }
@@ -1644,6 +1604,10 @@
         // أو من مستخدم آخر)، مع تجاهل الأصداء الناتجة عن كتابتنا نحن أنفسنا.
         function setupRealtimeSync() {
             if (!CLOUD_ENABLED) return;
+            // نشيل أي اشتراك سابق أولاً (idempotent) — يمنع تراكم أكثر من listener
+            // على نفس المسار لو الدالة دي اتنادت أكتر من مرة بدون teardown بينهم
+            // (مثال: قفل وفتح التطبيق بالبصمة عدة مرات في نفس الجلسة)
+            teardownRealtimeSync();
             db.ref('meta/updatedAt').on('value', (snap) => {
                 const newVal = snap.val();
                 if (newVal === _lastKnownUpdatedAt) return; // نفس القيمة (غالباً صدى كتابتنا) — تجاهل
@@ -1714,7 +1678,7 @@
                     <i data-lucide="${icon}" class="w-5 h-5"></i>
                 </div>
                 <div class="flex-1">
-                    <p class="text-sm font-bold ${textClass}">${message}</p>
+                    <p class="text-sm font-bold ${textClass}">${escapeHtml(message)}</p>
                     ${clickHint}
                 </div>
                 <button onclick="event.stopPropagation(); this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors">
@@ -1765,7 +1729,7 @@
                             <div class="flex items-start gap-4">
                                 <div class="mt-1 w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${n.type === 'delete' ? 'bg-red-500 shadow-red-200' : 'bg-emerald-500 shadow-emerald-200'}"></div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm text-slate-700 font-bold leading-relaxed">${n.text}</p>
+                                    <p class="text-sm text-slate-700 font-bold leading-relaxed">${escapeHtml(n.text)}</p>
                                     <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1 font-medium">
                                         <i data-lucide="clock" class="w-3 h-3"></i> ${n.date} - ${n.time}
                                     </p>
@@ -1859,6 +1823,7 @@
             document.getElementById('app').style.display = 'block';
             render();
             if (CLOUD_ENABLED) setupRealtimeSync();
+            offerBiometricSetup(email);
         }
 
         function loginAsGuest() {
@@ -1870,11 +1835,350 @@
             state.currentUserEmail = '';
             state.isLoggedIn = false;
             localStorage.removeItem('hotel_app_email');
+            hideBiometricLockScreen();
             document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('app').style.display = 'none';
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
+            updateLoginScreenBiometricButton();
         }
+
+        // ===================== Auto Logout (خروج تلقائي بعد فترة عدم نشاط) =====================
+        // إضافة مستقلة لا تعدّل أي منطق أو تصميم موجود: بتسجّل خروج المستخدم تلقائيًا
+        // لو التطبيق فضل بدون أي تفاعل (لمس/ضغط/كتابة) أو بدون ظهور على الشاشة
+        // لمدة أطول من AUTO_LOGOUT_MINUTES. تعمل نفس الطريقة سواء اتفتح من متصفح
+        // عادي أو من داخل تطبيق الأندرويد (WebView).
+        const AUTO_LOGOUT_MINUTES = 3; // غيّر الرقم ده لتعديل مدة الخمول المسموحة
+        const AUTO_LOGOUT_MS = AUTO_LOGOUT_MINUTES * 60 * 1000;
+        const LAST_ACTIVITY_KEY = 'hotel_last_activity_ts';
+        let _lastActivityWriteAt = 0;
+
+        function recordActivityTimestamp() {
+            if (!state.isLoggedIn) return;
+            const now = Date.now();
+            // لتقليل عدد الكتابات على localStorage وقت الحركة المستمرة (mousemove/scroll)
+            if (now - _lastActivityWriteAt < 5000) return;
+            _lastActivityWriteAt = now;
+            localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+        }
+
+        function checkAutoLogout() {
+            if (!state.isLoggedIn) return;
+            const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
+            if (last && (Date.now() - last) > AUTO_LOGOUT_MS) {
+                logout();
+            } else {
+                recordActivityTimestamp();
+            }
+        }
+
+        ['click', 'keydown', 'touchstart', 'mousemove', 'scroll'].forEach(function(evt) {
+            document.addEventListener(evt, recordActivityTimestamp, { passive: true });
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                // التطبيق ظهر تاني (سواء اترجع من الخلفية في الأندرويد أو رجّع تاب في المتصفح)
+                checkAutoLogout();
+            } else {
+                // هيتم اعتبار وقت الاختفاء كآخر نشاط، عشان لو رجع بعد وقت طويل يتسجل خروجه
+                recordActivityTimestamp();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', function() {
+            recordActivityTimestamp();
+        });
+
+        setInterval(checkAutoLogout, 60 * 1000);
+        // ===================== End Auto Logout =====================
+
+        // ===================== Biometric (Fingerprint / Face ID) Login =====================
+        // نظام دخول بالبصمة على مستوى الجهاز: بعد أول تسجيل دخول ناجح بكلمة المرور،
+        // نعرض على المستخدم تفعيل البصمة. لو وافق، نسجل بيانات اعتماد محليًا على هذا
+        // الجهاز فقط. في المرات القادمة، بدل عرض شاشة الدخول العادية مباشرة نطلب تحقق
+        // بالبصمة، ولو نجح نفتح التطبيق تلقائيًا بدون أي نقر على زر الدخول.
+        // فيه مساران للتحقق:
+        //  1) جسر تطبيق أندرويد الأصلي (WebView) عبر window.Android.authenticateBiometric()
+        //     - يُستخدم تلقائيًا لو التطبيق شغال جوه تطبيق أندرويد يوفر الجسر ده.
+        //  2) WebAuthn (Platform Authenticator) للمتصفحات العادية على الموبايل/الديسكتوب.
+        // ملحوظة: الاتنين تحقق محلي على مستوى الجهاز وليس تحقق مركزي عبر سيرفر، وهو
+        // مناسب تمامًا لطبيعة النظام الحالي (لا يوجد باك إند مصادقة).
+
+        function bufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let str = '';
+            for (let i = 0; i < bytes.byteLength; i++) str += String.fromCharCode(bytes[i]);
+            return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        function base64urlToBuffer(base64url) {
+            const pad = '='.repeat((4 - (base64url.length % 4)) % 4);
+            const base64 = (base64url + pad).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            const buffer = new ArrayBuffer(raw.length);
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+            return buffer;
+        }
+
+        // --- جسر تطبيق أندرويد الأصلي (WebView) ---
+        function hasAndroidBiometricBridge() {
+            return !!(window.Android && typeof window.Android.authenticateBiometric === 'function');
+        }
+
+        let _androidBiometricResolver = null;
+
+        // دالة لطلب البصمة من تطبيق الأندرويد (بترجع Promise تتحل لما يوصل الرد)
+        function requestBiometricAuth() {
+            return new Promise((resolve) => {
+                if (hasAndroidBiometricBridge()) {
+                    _androidBiometricResolver = resolve;
+                    window.Android.authenticateBiometric();
+                } else {
+                    console.log('هذه الميزة متاحة فقط داخل تطبيق الأندرويد.');
+                    resolve(false);
+                }
+            });
+        }
+
+        // هذه الدالة يستدعيها تطبيق الأندرويد تلقائيًا بعد عملية البصمة
+        function onBiometricResult(success, message) {
+            if (_androidBiometricResolver) {
+                const resolve = _androidBiometricResolver;
+                _androidBiometricResolver = null;
+                resolve(!!success);
+            }
+            if (!success && message) {
+                console.warn('Biometric auth failed:', message);
+            }
+        }
+
+        async function isBiometricAvailable() {
+            if (hasAndroidBiometricBridge()) return true;
+            try {
+                return !!(window.PublicKeyCredential &&
+                    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function' &&
+                    await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function getBiometricCredential() {
+            const credId = localStorage.getItem('hotel_biometric_cred_id');
+            const email  = localStorage.getItem('hotel_biometric_email');
+            return (credId && email) ? { credId, email } : null;
+        }
+
+        function isBiometricRegisteredForCurrentUser() {
+            const stored = getBiometricCredential();
+            return !!(stored && stored.email === state.currentUserEmail);
+        }
+
+        function removeBiometricCredential() {
+            localStorage.removeItem('hotel_biometric_cred_id');
+            localStorage.removeItem('hotel_biometric_email');
+        }
+
+        async function offerBiometricSetup(email) {
+            if (!email || email === GUEST_EMAIL) return;
+            const existing = getBiometricCredential();
+            if (existing && existing.email === email) return; // مفعّلة بالفعل لنفس المستخدم على هذا الجهاز
+            if (!(await isBiometricAvailable())) return;
+            showBiometricSetupPrompt(email);
+        }
+
+        function showBiometricSetupPrompt(email) {
+            const existingModal = document.getElementById('biometricSetupModal');
+            if (existingModal) existingModal.remove();
+            const modal = document.createElement('div');
+            modal.id = 'biometricSetupModal';
+            modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-in text-center">
+                    <div class="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-5 flex items-center justify-center border border-slate-200">
+                        <i data-lucide="fingerprint" class="w-10 h-10 text-[#6E1418]"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-[#6E1418] mb-2">تفعيل الدخول بالبصمة</h3>
+                    <p class="text-sm text-slate-500 mb-6">هل تريد استخدام بصمتك لتسجيل الدخول تلقائيًا في المرات القادمة على هذا الجهاز؟</p>
+                    <div class="flex gap-3">
+                        <button id="biometricSetupSkip" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-xl border border-slate-200 transition-all">لاحقًا</button>
+                        <button id="biometricSetupConfirm" class="flex-1 bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-3 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all">تفعيل</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            document.getElementById('biometricSetupSkip').onclick = () => modal.remove();
+            document.getElementById('biometricSetupConfirm').onclick = async () => {
+                modal.remove();
+                await registerBiometric(email);
+                render();
+                updateLoginScreenBiometricButton();
+            };
+        }
+
+        async function registerBiometric(email) {
+            try {
+                if (hasAndroidBiometricBridge()) {
+                    // تأكيد فوري إن البصمة شغالة على الجهاز قبل تفعيلها في التطبيق
+                    const ok = await requestBiometricAuth();
+                    if (!ok) throw new Error('android biometric test failed');
+                    localStorage.setItem('hotel_biometric_cred_id', 'android-native');
+                    localStorage.setItem('hotel_biometric_email', email);
+                    showToast('تم تفعيل الدخول بالبصمة على هذا الجهاز ✅', 'success');
+                    return;
+                }
+                const challenge = crypto.getRandomValues(new Uint8Array(32));
+                const userId = new TextEncoder().encode(email);
+                const publicKey = {
+                    challenge,
+                    rp: { name: 'Resta Events Booking' },
+                    user: { id: userId, name: email, displayName: email.split('@')[0] },
+                    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+                    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+                    timeout: 60000,
+                    attestation: 'none'
+                };
+                const cred = await navigator.credentials.create({ publicKey });
+                if (!cred) throw new Error('no credential returned');
+                localStorage.setItem('hotel_biometric_cred_id', bufferToBase64url(cred.rawId));
+                localStorage.setItem('hotel_biometric_email', email);
+                showToast('تم تفعيل الدخول بالبصمة على هذا الجهاز ✅', 'success');
+            } catch (err) {
+                console.error('Biometric registration error:', err);
+                showToast('تعذر تفعيل البصمة على هذا الجهاز', 'error');
+            }
+        }
+
+        async function toggleBiometricForCurrentUser() {
+            if (isBiometricRegisteredForCurrentUser()) {
+                removeBiometricCredential();
+                showToast('تم إلغاء الدخول بالبصمة على هذا الجهاز', 'success');
+                render();
+            } else {
+                await registerBiometric(state.currentUserEmail);
+                render();
+            }
+            updateLoginScreenBiometricButton();
+        }
+
+        async function tryBiometricLogin() {
+            const stored = getBiometricCredential();
+            if (!stored || stored.email !== state.currentUserEmail) return false;
+            try {
+                if (hasAndroidBiometricBridge()) {
+                    return await requestBiometricAuth();
+                }
+                const challenge = crypto.getRandomValues(new Uint8Array(32));
+                const publicKey = {
+                    challenge,
+                    allowCredentials: [{ id: base64urlToBuffer(stored.credId), type: 'public-key' }],
+                    userVerification: 'required',
+                    timeout: 60000
+                };
+                const assertion = await navigator.credentials.get({ publicKey });
+                return !!assertion;
+            } catch (err) {
+                console.warn('Biometric login failed or cancelled:', err);
+                return false;
+            }
+        }
+
+        // إظهار/إخفاء أيقونة البصمة في شاشة تسجيل الدخول الأولى حسب توفر البصمة
+        // ووجود بصمة مسجّلة بالفعل على هذا الجهاز
+        async function updateLoginScreenBiometricButton() {
+            const btn = document.getElementById('loginScreenBiometricBtn');
+            if (!btn) return;
+            const stored = getBiometricCredential();
+            if (stored && await isBiometricAvailable()) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        // الدخول مباشرة بالبصمة من شاشة تسجيل الدخول الأولى (بدون كتابة إيميل/باسورد)
+        async function loginWithBiometricFromLoginScreen() {
+            const stored = getBiometricCredential();
+            if (!stored) {
+                showToast('لا يوجد بصمة مسجلة على هذا الجهاز بعد', 'error');
+                return;
+            }
+            const btn = document.getElementById('loginScreenBiometricBtn');
+            if (btn) btn.disabled = true;
+            state.currentUserEmail = stored.email;
+            const ok = await tryBiometricLogin();
+            if (btn) btn.disabled = false;
+            if (ok) {
+                performLogin(stored.email);
+            } else {
+                showToast('تعذر التحقق من البصمة، حاول تسجيل الدخول بكلمة المرور', 'error');
+            }
+        }
+
+        function unlockApp() {
+            hideBiometricLockScreen();
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            render();
+            if (CLOUD_ENABLED) setupRealtimeSync();
+        }
+
+        async function attemptAutoUnlock() {
+            const stored = getBiometricCredential();
+            const canTryBiometric = stored && stored.email === state.currentUserEmail &&
+                state.currentUserEmail !== GUEST_EMAIL && await isBiometricAvailable();
+
+            if (canTryBiometric) {
+                showBiometricLockScreen();
+                const ok = await tryBiometricLogin();
+                if (ok) {
+                    unlockApp();
+                } else {
+                    showBiometricFallback();
+                }
+            } else {
+                unlockApp();
+            }
+        }
+
+        function showBiometricLockScreen() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('app').style.display = 'none';
+            const screen = document.getElementById('biometricLockScreen');
+            screen.classList.remove('hidden');
+            document.getElementById('biometricLockStatus').textContent = 'استخدم بصمتك لفتح التطبيق...';
+            document.getElementById('biometricLockActions').classList.add('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function hideBiometricLockScreen() {
+            const screen = document.getElementById('biometricLockScreen');
+            if (screen) screen.classList.add('hidden');
+        }
+
+        function showBiometricFallback() {
+            document.getElementById('biometricLockStatus').textContent = 'تعذر التحقق من البصمة';
+            document.getElementById('biometricLockActions').classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function retryBiometricUnlock() {
+            document.getElementById('biometricLockStatus').textContent = 'استخدم بصمتك لفتح التطبيق...';
+            document.getElementById('biometricLockActions').classList.add('hidden');
+            const ok = await tryBiometricLogin();
+            if (ok) {
+                unlockApp();
+            } else {
+                showBiometricFallback();
+            }
+        }
+
+        function useBiometricFallbackPassword() {
+            hideBiometricLockScreen();
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+        // ===================== End Biometric Login =====================
 
         // --- Admin Functions ---
         async function toggleUsersModal() {
@@ -1998,7 +2302,7 @@
                         const hall = HALLS.find(h => h.id === b.hallId) || { name: 'غير معروف', color: 'bg-gray-100 text-gray-500' };
                         return `
                             <tr onclick="showDayDetails('${b.startDate}')" class="cursor-pointer hover:bg-slate-50 transition-all border-l-4 border-transparent hover:border-[#A88A45] bg-white group">
-                                <td class="font-bold text-[#6E1418] group-hover:pl-2 transition-all">${b.companyName}</td>
+                                <td class="font-bold text-[#6E1418] group-hover:pl-2 transition-all">${escapeHtml(b.companyName)}</td>
                                 <td><span class="text-xs px-3 py-1.5 rounded-lg font-bold ${hall.color}">${hall.name}</span></td>
                                 <td class="text-slate-600 dir-ltr font-mono text-xs">${b.startDate}</td>
                                 <td class="text-slate-600 dir-ltr font-mono text-xs">${b.endDate}</td>
@@ -2149,6 +2453,16 @@
             const canMove = state.currentUserEmail === ADMIN_EMAIL || booking.createdBy === state.currentUserEmail;
             if (!canMove) {
                 showToast('عذراً، يمكنك نقل حجوزاتك الخاصة فقط.', 'error');
+                return;
+            }
+
+            // الأيام المنصرمة: لا يمكن نقل حجز منها إلا للأدمن، ولا يمكن النقل إليها إطلاقاً
+            if (state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(booking.startDate)) {
+                showToast('عذراً، هذا حجز في يوم منصرم، ولا يمكن نقله إلا من قبل الأدمن.', 'error');
+                return;
+            }
+            if (isPastDateStr(newDate)) {
+                showToast('لا يمكن نقل حجوزات إلى الأيام المنصرمة.', 'error');
                 return;
             }
 
@@ -2422,157 +2736,17 @@
             cleanupTouchDrag();
         }
 
-        function handleBookingSubmit(e) {
-            e.preventDefault();
-            const form = e.target;
-            const isEditing = !!state.editingBookingId;
-            const bookingData = {
-                hallId: state.selectedHall.id,
-                hallName: state.selectedHall.name,
-                companyName: form.company.value,
-                phone: form.phone.value,
-                employee: form.employee.value,
-                startDate: form.dateFrom.value,
-                endDate: form.dateTo.value,
-                startTime: form.timeFrom.value,
-                endTime: form.timeTo.value,
-                notes: form.notes.value,
-                link: form.link.value,
-                createdBy: isEditing
-                    ? (state.bookings.find(b => b.groupId === state.editingBookingId || b.id === state.editingBookingId)?.createdBy || state.currentUserEmail)
-                    : state.currentUserEmail,
-                createdAt: new Date().toISOString()
-            };
-
-            const start = new Date(bookingData.startDate);
-            const end = new Date(bookingData.endDate);
-
-            if (end < start) {
-                alert("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
-                return;
-            }
-
-            // Build new dates list
-            const newDates = [];
-            let cur = new Date(start);
-            while (cur <= end) {
-                newDates.push(cur.toISOString().split('T')[0]);
-                cur.setDate(cur.getDate() + 1);
-            }
-
-            // Conflict check – ignore all days in the group being edited
-            for (const ds of newDates) {
-                if (checkConflict(bookingData.hallId, ds, bookingData.startTime, bookingData.endTime, state.editingBookingId, true)) {
-                    alert('عذراً، يوجد حجز مسبق في نفس التوقيت يوم ' + ds + ' في ' + bookingData.hallName + '.');
-                    return;
-                }
-            }
-
-            const groupId = isEditing
-                ? state.editingBookingId
-                : String(Date.now()) + '_' + Math.random().toString(36).slice(2);
-
-            if (isEditing) {
-                // ── Smart merge ──────────────────────────────────────────────
-                const existingGroupDays = state.bookings.filter(b =>
-                    b.groupId === groupId || b.id === groupId
-                );
-                const existingDates = existingGroupDays.map(b => b.startDate);
-
-                // Remove days no longer in new range
-                const idsToRemove = existingGroupDays
-                    .filter(b => !newDates.includes(b.startDate))
-                    .map(b => b.id);
-                idsToRemove.forEach(did => state.pendingDeletions.push(did));
-                state.bookings = state.bookings.filter(b => !idsToRemove.includes(b.id));
-
-                // Update shared metadata on remaining days
-                state.bookings = state.bookings.map(b => {
-                    if (b.groupId === groupId || b.id === groupId) {
-                        return {
-                            ...b,
-                            hallId: bookingData.hallId,
-                            hallName: bookingData.hallName,
-                            companyName: bookingData.companyName,
-                            phone: bookingData.phone,
-                            employee: bookingData.employee,
-                            startTime: bookingData.startTime,
-                            endTime: bookingData.endTime,
-                            notes: bookingData.notes,
-                            link: bookingData.link,
-                            originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
-                            _isDirty: true
-                        };
-                    }
-                    return b;
-                });
-
-                // Add new days not previously in the group
-                // Reuse removed IDs when possible to avoid orphan records on the server
-                const datesToAdd = newDates.filter(d => !existingDates.includes(d));
-                const reuseIds = idsToRemove.slice();
-                let dayIndex = existingGroupDays.length;
-                datesToAdd.forEach(ds => {
-                    let newId;
-                    if (reuseIds.length > 0) {
-                        newId = reuseIds.shift();
-                        state.pendingDeletions = state.pendingDeletions.filter(pid => pid !== newId);
-                    } else {
-                        newId = groupId + '_d' + dayIndex;
-                        dayIndex++;
-                    }
-                    state.bookings.push({
-                        ...bookingData,
-                        id: newId,
-                        groupId: groupId,
-                        startDate: ds,
-                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
-                        _isDirty: true
-                    });
-                });
-            } else {
-                // New booking – create all days
-                newDates.forEach((ds, dayIndex) => {
-                    state.bookings.push({
-                        ...bookingData,
-                        id: groupId + '_d' + dayIndex,
-                        groupId: groupId,
-                        startDate: ds,
-                        originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
-                        _isDirty: true
-                    });
-                });
-            }
-
-            const logType = isEditing ? 'تعديل' : 'إضافة';
-            const _fmtD1 = bookingData.startDate ? bookingData.startDate.split('-').reverse().join('/') : '';
-            const logMsg = 'تم ' + logType + ' حجز - ' + bookingData.companyName + ' - بتاريخ ' + _fmtD1;
-
-            addNotification(logMsg, 'add', bookingData.startDate);
-            showToast(logMsg, 'success', bookingData.startDate);
-
-            state.activityLogs.unshift({
-                type:         logType,
-                company:      bookingData.companyName,
-                hallName:     bookingData.hallName || '',
-                user:         state.currentUserEmail,
-                date:         new Date().toLocaleDateString('ar-EG'),
-                time:         new Date().toLocaleTimeString('ar-EG'),
-                isoTimestamp: new Date().toISOString()
-            });
-
-            state.editingBookingId = null;
-            saveLocal();
-            state.activeTab = 'calendar';
-            render();
-        }
-
         function editBooking(id) {
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
             if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية تعديل هذا الحجز.");
+                return;
+            }
+
+            if (state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(booking.startDate)) {
+                alert("عذراً، هذا حجز في يوم منصرم، ولا يمكن تعديله إلا من قبل الأدمن.");
                 return;
             }
 
@@ -2587,6 +2761,11 @@
 
             if (state.currentUserEmail !== ADMIN_EMAIL && state.currentUserEmail !== booking.createdBy) {
                 alert("عذراً، ليس لديك صلاحية حذف هذا الحجز.");
+                return;
+            }
+
+            if (state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(booking.startDate)) {
+                alert("عذراً، هذا حجز في يوم منصرم، ولا يمكن حذفه إلا من قبل الأدمن.");
                 return;
             }
 
@@ -2656,6 +2835,8 @@
                 company:      booking.companyName,
                 hallName:     (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '',
                 user:         state.currentUserEmail,
+                bookingId:    booking.id || '',
+                startDate:    booking.startDate || '',
                 date:         new Date().toLocaleDateString('ar-EG'),
                 time:         new Date().toLocaleTimeString('ar-EG'),
                 isoTimestamp: new Date().toISOString()
@@ -2700,6 +2881,8 @@
                 company:      booking.companyName,
                 hallName:     (HALLS.find(h => h.id === booking.hallId) || {}).name || booking.hallName || '',
                 user:         state.currentUserEmail,
+                bookingId:    booking.id || '',
+                startDate:    booking.startDate || '',
                 date:         new Date().toLocaleDateString('ar-EG'),
                 time:         new Date().toLocaleTimeString('ar-EG'),
                 isoTimestamp: new Date().toISOString()
@@ -2747,7 +2930,7 @@
                     .filter(b => b.startDate === dateStr && (!b.startTime || !b.endTime))
                     .map(b => b.hallId);
                 const availableCount = HALLS.filter(h => !fullDayBookedHallIds.includes(h.id)).length;
-                actionsEl.innerHTML = (availableCount > 0 && !isGuest()) ? `
+                actionsEl.innerHTML = (availableCount > 0 && !isGuest() && (state.currentUserEmail === ADMIN_EMAIL || !isPastDateStr(dateStr))) ? `
                     <button onclick="openNewBookingForDate('${dateStr}')"
                         class="flex items-center gap-2 bg-white/10 hover:bg-[#A88A45]/30 border border-white/20 rounded-xl px-3 py-2 text-sm font-bold transition-all duration-200"
                         title="إضافة حجز جديد لهذا اليوم">
@@ -2766,7 +2949,7 @@
                 const hall = HALLS.find(h => h.id === b.hallId);
                 const isOwner = b.createdBy === state.currentUserEmail;
                 const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
-                const canControl = isOwner || isAdmin;
+                const canControl = isAdmin || (isOwner && !isPastDateStr(b.startDate));
 
                 return `
                     <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-5 shadow-sm border-r-4 ${hall.border} relative overflow-hidden group hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -2778,17 +2961,17 @@
                                         ${isOwner ? '<span class="text-xs font-bold px-3 py-1 rounded-lg bg-[#A88A45]/20 text-[#8f753a] flex items-center gap-1"><i data-lucide="user-check" class="w-3 h-3"></i> حجزي</span>' : ''}
                                     </div>
                                 </div>
-                                <h4 class="font-black text-xl text-[#6E1418] mt-3 mb-4">${b.companyName}</h4>
+                                <h4 class="font-black text-xl text-[#6E1418] mt-3 mb-4">${escapeHtml(b.companyName)}</h4>
                                 <div class="grid grid-cols-2 gap-3 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                     <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-bold">${b.startTime || 'يوم كامل'} - ${b.endTime || 'يوم كامل'}</span></div>
-                                    <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="user" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-medium truncate">${b.employee || 'غير محدد'}</span></div>
-                                    <div class="flex items-center gap-2 col-span-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-medium font-mono dir-ltr">${b.phone || 'لا يوجد رقم'}</span></div>
+                                    <div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="user" class="w-3.5 h-3.5 text-[#A88A45]"></i></div> <span class="font-medium truncate">${escapeHtml(b.employee) || 'غير محدد'}</span></div>
+                                    <div class="flex items-center gap-2 col-span-2">${b.phone ? `<a href="tel:${escapeHtml(b.phone)}" class="flex items-center gap-2 group" title="اتصال بـ ${escapeHtml(b.phone)}"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0 group-hover:bg-green-50 group-active:bg-green-100 transition-colors"><i data-lucide="phone" class="w-3.5 h-3.5 text-[#A88A45] group-hover:text-green-600 transition-colors"></i></div><span class="font-medium font-mono dir-ltr group-hover:text-green-600 transition-colors underline-offset-2 group-hover:underline">${escapeHtml(b.phone)}</span></a><a href="${getWhatsAppLink(b.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center justify-center shrink-0 group/wa" title="واتساب ${escapeHtml(b.phone)}"><div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0 group-hover/wa:bg-green-50 group-active/wa:bg-green-100 transition-colors"><svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-[#A88A45] group-hover/wa:fill-green-600 transition-colors"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2m0 1.67a8.2 8.2 0 018.24 8.24c0 4.55-3.7 8.24-8.25 8.24a8.2 8.2 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 01-1.26-4.38c0-4.55 3.7-8.24 8.25-8.24m-4.53 4.72c-.16 0-.42.06-.64.31s-.85.83-.85 2.03.87 2.36.99 2.52c.12.16 1.7 2.6 4.13 3.64.58.25 1.03.4 1.38.51.58.19 1.11.16 1.53.1.47-.07 1.44-.59 1.64-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.47-.28s-1.44-.71-1.66-.79-.39-.12-.55.12c-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.02-.38-1.95-1.2-.72-.64-1.2-1.44-1.35-1.68-.14-.24-.02-.37.11-.5.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.84-.2-.48-.4-.42-.55-.42h-.47" /></svg></div></a>` : `<div class="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center shrink-0"><i data-lucide="phone" class="w-3.5 h-3.5 text-[#A88A45]"></i></div><span class="font-medium text-slate-400">لا يوجد رقم</span>`}</div>
                                 </div>
                                 
                                 ${b.notes ? `
                                 <div class="mt-4 p-3 bg-amber-50/50 rounded-xl text-sm text-amber-900 border border-amber-100/50 flex items-start gap-2">
                                     <i data-lucide="info" class="w-4 h-4 mt-0.5 text-amber-600 shrink-0"></i>
-                                    <p class="leading-relaxed font-medium">${b.notes}</p>
+                                    <p class="leading-relaxed font-medium">${escapeHtml(b.notes)}</p>
                                 </div>` : ''}
 
                                 ${(() => {
@@ -3170,23 +3353,9 @@ ${notesDisplay ? `
             const subject = `تفاصيل الحجز - ${b.companyName || ''} - ${hall.name}`;
             const body = lines.join('\n');
 
-            const mailtoUrl = `mailto:${BOOKING_EMAIL_RECIPIENTS.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            const mailtoUrl = `mailto:${BOOKING_EMAIL_RECIPIENTS.join(';')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = mailtoUrl;
         }
-
-        function cancelEdit() {
-            state.editingBookingId = null;
-            state.activeTab = 'calendar';
-            render();
-        }
-
-        function navigate(view) {
-            state.view = 'dashboard';
-            state.selectedHall = null;
-            render();
-        }
-
-        function selectHall(id) {} // Display only
 
         function changeMonth(delta) {
             state.currentMonth += delta;
@@ -3219,14 +3388,7 @@ ${notesDisplay ? `
 
 
                         <div class="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end">
-                            <!-- زر حجز جديد -->
                             ${!isGuest() ? `
-                            <button onclick="toggleGlobalBookingModal()" class="fab-new-booking mr-1 sm:mr-4 shrink-0 w-10 h-10 sm:w-[42px] sm:h-[42px]" title="إضافة حجز جديد">
-                                <i data-lucide="plus" class="w-5 h-5 sm:w-6 sm:h-6"></i>
-                            </button>
-
-                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-1 shrink-0"></div>
-
                             <div class="flex items-center bg-slate-100 rounded-xl p-0.5 gap-0.5 shrink-0">
                                 <button onclick="performUndo()" ${moveUndoStack.length === 0 ? 'disabled' : ''} class="p-1.5 sm:p-2 text-slate-500 hover:text-[#6E1418] hover:bg-white rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-500" title="تراجع عن آخر نقل">
                                     <i data-lucide="undo-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
@@ -3327,6 +3489,12 @@ ${notesDisplay ? `
                             ${state.currentUserEmail === ADMIN_EMAIL ? `
                                 <button onclick="toggleUsersModal()" class="p-2 sm:p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shrink-0" title="إدارة المستخدمين">
                                     <i data-lucide="users" class="w-5 h-5"></i>
+                                </button>
+                            ` : ''}
+
+                            ${((window.PublicKeyCredential || hasAndroidBiometricBridge()) && state.currentUserEmail !== GUEST_EMAIL) ? `
+                                <button onclick="toggleBiometricForCurrentUser()" class="p-2 sm:p-2.5 ${isBiometricRegisteredForCurrentUser() ? 'text-[#6E1418] bg-red-50' : 'text-slate-500 hover:text-[#6E1418] hover:bg-red-50'} rounded-xl transition-all shrink-0" title="${isBiometricRegisteredForCurrentUser() ? 'إلغاء الدخول بالبصمة' : 'تفعيل الدخول بالبصمة'}">
+                                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
                                 </button>
                             ` : ''}
 
@@ -3480,7 +3648,7 @@ ${notesDisplay ? `
                     const canDrag = !isGuest() && (state.currentUserEmail === ADMIN_EMAIL || isMyBooking);
                     return `
                         <div class="booking-tag ${hall.color} ${hall.border} ${isMyBooking ? 'my-booking' : ''}"
-                             title="${hall.name}: ${b.companyName}${canDrag ? ' (اسحب لنقل الحجز ليوم آخر)' : ''}"
+                             title="${hall.name}: ${escapeHtml(b.companyName)}${canDrag ? ' (اسحب لنقل الحجز ليوم آخر)' : ''}"
                              draggable="${canDrag}"
                              ondragstart="${canDrag ? `handleBookingDragStart(event, '${b.id}')` : ''}"
                              ondragend="${canDrag ? 'handleBookingDragEnd(event)' : ''}"
@@ -3489,7 +3657,7 @@ ${notesDisplay ? `
                              ontouchend="${canDrag ? 'handleBookingTouchEnd(event)' : ''}"
                              ontouchcancel="${canDrag ? 'handleBookingTouchCancel(event)' : ''}">
                             <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0" style="min-width:6px;"></div>
-                            <span>${b.companyName}</span>
+                            <span>${escapeHtml(b.companyName)}</span>
                         </div>
                     `;
                 }).join('');
@@ -3533,104 +3701,11 @@ ${notesDisplay ? `
             `;
         }
 
-        // ─── Sync Dropdown ────────────────────────────────────────────────
-        function toggleSyncDropdown(e) {
-            if (e) e.stopPropagation();
-            const dd = document.getElementById('syncDropdown');
-            if (dd) dd.classList.toggle('hidden');
-        }
-
         // ─── قائمة المزيد (موبايل) ──────────────────────────────────────
         function toggleMoreMenu(e) {
             if (e) e.stopPropagation();
             const dd = document.getElementById('moreMenuDropdown');
             if (dd) dd.classList.toggle('hidden');
-        }
-
-        // ─── Export to iCal (Google Calendar) ────────────────────────────
-        function exportToIcal() {
-            if (state.bookings.length === 0) {
-                showToast('لا توجد حجوزات لتصديرها', 'error');
-                return;
-            }
-
-            const seen = new Set();
-            const unique = state.bookings.filter(b => {
-                const key = b.groupId || b.id.toString().split('_d')[0];
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
-
-            const events = unique.map(b => {
-                const hall = HALLS.find(h => h.id === b.hallId);
-                const summary = `${hall ? hall.name : b.hallId} - ${b.companyName}`;
-
-                let startDateStr = b.startDate;
-                let endDateStr   = b.endDate || b.startDate;
-                if (b.originalRange && b.originalRange.includes(' to ')) {
-                    const parts  = b.originalRange.split(' to ');
-                    startDateStr = parts[0];
-                    endDateStr   = parts[1];
-                }
-
-                const endPlusOne = new Date(endDateStr);
-                endPlusOne.setDate(endPlusOne.getDate() + 1);
-                const endPlusStr = endPlusOne.toISOString().split('T')[0].replace(/-/g,'');
-                const startClean = startDateStr.replace(/-/g,'');
-                const uid = 'RESTA-' + b.id.toString().replace(/[^a-zA-Z0-9]/g,'').slice(0, 20);
-
-                let dtStart, dtEnd;
-                if (b.startTime) {
-                    const st = b.startTime.replace(':','') + '00';
-                    const et = (b.endTime || b.startTime).replace(':','') + '00';
-                    dtStart = `DTSTART;TZID=Africa/Cairo:${startClean}T${st}`;
-                    dtEnd   = `DTEND;TZID=Africa/Cairo:${startClean}T${et}`;
-                } else {
-                    dtStart = `DTSTART;VALUE=DATE:${startClean}`;
-                    dtEnd   = `DTEND;VALUE=DATE:${endPlusStr}`;
-                }
-
-                const descParts = [
-                    b.employee ? 'الموظف: ' + b.employee : '',
-                    b.phone    ? 'هاتف: '    + b.phone    : '',
-                    b.notes    ? 'ملاحظات: ' + b.notes    : '',
-                    'بواسطة: ' + b.createdBy
-                ].filter(Boolean);
-
-                return [
-                    'BEGIN:VEVENT',
-                    'UID:' + uid + '@resta-events',
-                    'DTSTAMP:' + new Date().toISOString().replace(/[-:.]/g,'').slice(0,15) + 'Z',
-                    dtStart,
-                    dtEnd,
-                    'SUMMARY:' + summary.replace(/[\r\n,;\\]/g,' '),
-                    descParts.length ? 'DESCRIPTION:' + descParts.join('\\n') : '',
-                    hall ? 'LOCATION:' + hall.name : '',
-                    'END:VEVENT'
-                ].filter(Boolean).join('\r\n');
-            });
-
-            const ical = [
-                'BEGIN:VCALENDAR',
-                'VERSION:2.0',
-                'PRODID:-//Resta Hotels//Events Booking//AR',
-                'CALSCALE:GREGORIAN',
-                'METHOD:PUBLISH',
-                'X-WR-CALNAME:Resta Events - Port Said',
-                'X-WR-TIMEZONE:Africa/Cairo',
-                ...events,
-                'END:VCALENDAR'
-            ].join('\r\n');
-
-            const blob = new Blob(['\uFEFF' + ical], { type: 'text/calendar;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'RestaEvents_' + new Date().toISOString().slice(0,10) + '.ics';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast('تم تصدير ' + unique.length + ' حجز! استورد الملف في Google Calendar', 'success');
         }
 
         // ─── Calendar Day Click Handler ───────────────────────────────────
@@ -3649,6 +3724,10 @@ ${notesDisplay ? `
         // ─── Open New Booking Modal Pre-filled for a Specific Date ───────
         function openNewBookingForDate(dateStr) {
             if (isGuest()) return;
+            if (state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(dateStr)) {
+                showToast('لا يمكن إضافة حجوزات في الأيام المنصرمة.', 'error');
+                return;
+            }
             state.editingBookingId = null;
 
             // القاعة تُحذف من القائمة فقط إذا كانت محجوزة يوم كامل (بدون توقيت)
@@ -3748,8 +3827,6 @@ ${notesDisplay ? `
 
         // ─── Booking Images: upload, camera capture, resize/compress, lightbox ──
         let formImages = [];           // {id, data} images attached to the currently open booking form
-        let cameraStream = null;       // active getUserMedia stream for the camera modal
-        let cameraFacingMode = 'environment';
         let lightboxImages = [];       // images shown in the current lightbox session
         let lightboxIndex = 0;
 
@@ -3846,76 +3923,6 @@ ${notesDisplay ? `
                 </div>
             `).join('') || '<p class="text-xs text-slate-400">لا توجد صور مرفقة بعد</p>';
             if (typeof lucide !== "undefined") lucide.createIcons();
-        }
-
-        // ─── Camera capture (works for mobile browsers and desktop webcams) ──
-        async function openCameraCapture() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert('المتصفح لا يدعم الوصول إلى الكاميرا. يمكنك استخدام "تحميل من الملفات" بدلاً من ذلك.');
-                return;
-            }
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraFacingMode }, audio: false });
-            } catch (err) {
-                alert('تعذّر الوصول إلى الكاميرا: ' + (err.message || 'تم رفض الإذن أو لا توجد كاميرا متاحة'));
-                return;
-            }
-            const video = document.getElementById('cameraVideo');
-            video.srcObject = cameraStream;
-
-            // Only show the "switch camera" button when more than one camera is available (typical on mobile)
-            const switchBtn = document.getElementById('cameraSwitchBtn');
-            if (switchBtn) {
-                switchBtn.classList.add('hidden');
-                if (navigator.mediaDevices.enumerateDevices) {
-                    navigator.mediaDevices.enumerateDevices().then(devices => {
-                        const cams = devices.filter(d => d.kind === 'videoinput');
-                        if (cams.length > 1) switchBtn.classList.remove('hidden');
-                    }).catch(() => {});
-                }
-            }
-
-            document.getElementById('cameraCapturedCount').textContent = '0';
-            document.getElementById('cameraModal').classList.remove('hidden');
-            if (typeof lucide !== "undefined") lucide.createIcons();
-        }
-
-        async function switchCamera() {
-            cameraFacingMode = (cameraFacingMode === 'environment') ? 'user' : 'environment';
-            if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraFacingMode }, audio: false });
-                document.getElementById('cameraVideo').srcObject = cameraStream;
-            } catch (err) {
-                alert('تعذّر تبديل الكاميرا: ' + (err.message || ''));
-            }
-        }
-
-        async function capturePhotoFromCamera() {
-            const video = document.getElementById('cameraVideo');
-            if (!video || !video.videoWidth) return;
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            try {
-                const dataUrl = await resizeImageSource(rawDataUrl);
-                formImages.push({ id: genImageId(), data: dataUrl });
-                renderImageThumbs();
-                const counter = document.getElementById('cameraCapturedCount');
-                if (counter) counter.textContent = String(formImages.length);
-            } catch (err) {
-                alert('تعذّر معالجة الصورة الملتقطة: ' + err.message);
-            }
-        }
-
-        function closeCameraCapture() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(t => t.stop());
-                cameraStream = null;
-            }
-            document.getElementById('cameraModal').classList.add('hidden');
         }
 
         // ─── Image lightbox (used both from the form and from the booking details card) ──
@@ -4124,6 +4131,12 @@ ${notesDisplay ? `
             const end   = new Date(bookingData.endDate);
             if (end < start) { alert('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'); return; }
 
+            // ─── منع غير الأدمن من الحجز في أيام منصرمة ───────────────────
+            if (!isEditing && state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(bookingData.startDate)) {
+                alert('عذراً، لا يمكنك إضافة حجز في يوم منصرم. هذه الصلاحية للأدمن فقط.');
+                return;
+            }
+
             // Build new dates list
             const newDates = [];
             let cur = new Date(start);
@@ -4156,6 +4169,23 @@ ${notesDisplay ? `
                 const idsToRemove = existingGroupDays
                     .filter(b => !newDates.includes(b.startDate))
                     .map(b => b.id);
+                // نسجّل كل يوم بيتشال بسبب تعديل النطاق كـ "حذف" في السجل، عشان
+                // إشعار "تم حذف حجز بواسطة..." يقدر ينسب العملية لصاحبها الصحيح بدل ما يفشل يلاقي اسم
+                existingGroupDays
+                    .filter(b => idsToRemove.includes(b.id))
+                    .forEach(b => {
+                        state.activityLogs.unshift({
+                            type:         'حذف',
+                            company:      b.companyName,
+                            hallName:     b.hallName || '',
+                            user:         state.currentUserEmail,
+                            bookingId:    b.id || '',
+                            startDate:    b.startDate || '',
+                            date:         new Date().toLocaleDateString('ar-EG'),
+                            time:         new Date().toLocaleTimeString('ar-EG'),
+                            isoTimestamp: new Date().toISOString()
+                        });
+                    });
                 idsToRemove.forEach(did => state.pendingDeletions.push(did));
                 state.bookings = state.bookings.filter(b => !idsToRemove.includes(b.id));
 
@@ -4242,164 +4272,6 @@ ${notesDisplay ? `
             render();
         }
 
-
-        // ─── Logs Modal ────────────────────────────────────────────────────
-        async function toggleLogsModal() {
-            const modal = document.getElementById('logsModal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                if (typeof lucide !== "undefined") lucide.createIcons();
-                await loadLogsForDisplay();
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
-        async function loadLogsForDisplay() {
-            const tbody = document.getElementById('logsTableBody');
-            tbody.innerHTML = `
-                <tr><td colspan="6" class="text-center py-12 text-slate-400 font-bold">
-                    <div class="flex flex-col items-center gap-3">
-                        <i data-lucide="loader-2" class="w-8 h-8 text-slate-300 animate-spin"></i>
-                        <span>جاري تحميل السجل من السحابة...</span>
-                    </div>
-                </td></tr>`;
-            if (typeof lucide !== "undefined") lucide.createIcons();
-
-            let allLogs = [];
-            try {
-                if (CLOUD_ENABLED) {
-                    const snap = await db.ref('logs').once('value');
-                    const serverLogs = fbValToArray(snap.val());
-                    // Merge: union of local + server, deduplicated
-                    const merged = [...state.activityLogs];
-                    serverLogs.forEach(sl => {
-                        const exists = merged.some(ll =>
-                            ll.isoTimestamp === sl.isoTimestamp ||
-                            (ll.time === sl.time && ll.date === sl.date && ll.company === sl.company)
-                        );
-                        if (!exists) merged.push(sl);
-                    });
-                    allLogs = merged;
-                } else {
-                    allLogs = [...state.activityLogs];
-                }
-            } catch (e) {
-                allLogs = [...state.activityLogs];
-            }
-
-            // Sort: newest first — use isoTimestamp when available, otherwise keep insertion order
-            allLogs.sort((a, b) => {
-                const tsA = a.isoTimestamp || '';
-                const tsB = b.isoTimestamp || '';
-                if (tsA && tsB) return tsB.localeCompare(tsA);
-                if (tsA) return -1;
-                if (tsB) return 1;
-                return 0;
-            });
-
-            window._allLogs = allLogs;
-
-            const searchInput = document.getElementById('logsSearchInput');
-            if (searchInput) searchInput.value = '';
-
-            renderLogsTable(allLogs);
-        }
-
-        function renderLogsTable(logs) {
-            const tbody = document.getElementById('logsTableBody');
-            const badge = document.getElementById('logsCountBadge');
-            if (badge) badge.textContent = logs.length + ' سجل';
-
-            if (!logs || logs.length === 0) {
-                tbody.innerHTML = `
-                    <tr><td colspan="6" class="text-center py-16 text-slate-400 font-bold">
-                        <div class="flex flex-col items-center gap-3">
-                            <i data-lucide="scroll" class="w-12 h-12 text-slate-300"></i>
-                            <span>لا توجد سجلات مطابقة</span>
-                        </div>
-                    </td></tr>`;
-                if (typeof lucide !== "undefined") lucide.createIcons();
-                return;
-            }
-
-            tbody.innerHTML = logs.map((log, i) => {
-                // نوع العملية — لون وأيقونة
-                const typeColor = log.type === 'حذف'
-                    ? 'bg-red-100 text-red-700 border border-red-200'
-                    : (log.type === 'تعديل'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                        : 'bg-emerald-100 text-emerald-700 border border-emerald-200');
-                const typeIcon = log.type === 'حذف' ? 'trash-2'
-                    : (log.type === 'تعديل' ? 'edit-3' : 'plus-circle');
-
-                // Timestamp — حاول استخدام isoTimestamp أولًا
-                let tsDisplay = '';
-                let tsDate = log.date || '';
-                let tsTime = log.time || '';
-                if (log.isoTimestamp) {
-                    try {
-                        const d = new Date(log.isoTimestamp);
-                        tsDate = d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
-                        tsTime = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    } catch(e) { /* fallback to date/time fields */ }
-                }
-                tsDisplay = tsDate
-                    ? `<div class="font-bold text-slate-700 text-sm">${tsDate}</div>
-                       <div class="text-xs text-slate-400 font-mono mt-0.5">${tsTime}</div>`
-                    : `<span class="text-slate-400">—</span>`;
-
-                // المستخدم — اعرض الإيميل كاملًا
-                const userEmail = log.user || log.createdBy || '—';
-
-                // اسم القاعة
-                const hallDisplay = log.hallName || log.hall || '—';
-
-                return `
-                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 group">
-                        <td class="px-3 py-3 text-xs font-bold text-slate-300 text-center w-8 group-hover:text-slate-500">${logs.length - i}</td>
-                        <td class="px-3 py-3">
-                            <span class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg ${typeColor} whitespace-nowrap">
-                                <i data-lucide="${typeIcon}" class="w-3 h-3 shrink-0"></i>
-                                ${log.type || '—'}
-                            </span>
-                        </td>
-                        <td class="px-3 py-3 font-bold text-[#6E1418] text-sm max-w-[160px]">
-                            <div class="truncate" title="${(log.company || '').replace(/"/g, '&quot;')}">${log.company || '—'}</div>
-                        </td>
-                        <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${hallDisplay}</td>
-                        <td class="px-3 py-3">${tsDisplay}</td>
-                        <td class="px-3 py-3">
-                            <div class="flex items-center gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500 font-black text-xs border border-slate-200">
-                                    ${userEmail !== '—' ? userEmail.charAt(0).toUpperCase() : '?'}
-                                </div>
-                                <span class="text-xs font-bold text-slate-600 break-all" style="direction:ltr; max-width:160px;" title="${userEmail}">${userEmail}</span>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            if (typeof lucide !== "undefined") lucide.createIcons();
-        }
-
-        function filterLogs() {
-            const q = (document.getElementById('logsSearchInput').value || '').trim().toLowerCase();
-            if (!window._allLogs) return;
-            const filtered = !q
-                ? window._allLogs
-                : window._allLogs.filter(l =>
-                    (l.company    || '').toLowerCase().includes(q) ||
-                    (l.type       || '').toLowerCase().includes(q) ||
-                    (l.user       || '').toLowerCase().includes(q) ||
-                    (l.createdBy  || '').toLowerCase().includes(q) ||
-                    (l.hallName   || '').toLowerCase().includes(q) ||
-                    (l.hall       || '').toLowerCase().includes(q) ||
-                    (l.date       || '').toLowerCase().includes(q)
-                );
-            renderLogsTable(filtered);
-        }
 
         // ─── الحجوزات المحذوفة (من الشيت المنفصل) ──────────────────────
         async function toggleDeletedBookingsModal() {
@@ -4811,14 +4683,14 @@ ${notesDisplay ? `
                 <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
                     <td class="px-3 py-3 text-xs font-bold text-slate-300 text-center w-8">${i + 1}</td>
                     <td class="px-3 py-3 font-bold text-[#6E1418] text-sm max-w-[160px]">
-                        <div class="truncate" title="${(b.companyName || '').replace(/"/g, '&quot;')}">${b.companyName || '—'}</div>
+                        <div class="truncate" title="${escapeHtml(b.companyName)}">${escapeHtml(b.companyName) || '—'}</div>
                     </td>
-                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap" style="direction:ltr; text-align:right;">${b.phone || '—'}</td>
+                    <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap" style="direction:ltr; text-align:right;">${b.phone ? `<span class="inline-flex items-center gap-1.5"><span>${escapeHtml(b.phone)}</span><a href="${getWhatsAppLink(b.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="واتساب ${escapeHtml(b.phone)}" class="inline-flex items-center justify-center w-5 h-5 shrink-0 hover:opacity-70 transition-opacity"><svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-green-600"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2m0 1.67a8.2 8.2 0 018.24 8.24c0 4.55-3.7 8.24-8.25 8.24a8.2 8.2 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 01-1.26-4.38c0-4.55 3.7-8.24 8.25-8.24m-4.53 4.72c-.16 0-.42.06-.64.31s-.85.83-.85 2.03.87 2.36.99 2.52c.12.16 1.7 2.6 4.13 3.64.58.25 1.03.4 1.38.51.58.19 1.11.16 1.53.1.47-.07 1.44-.59 1.64-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.47-.28s-1.44-.71-1.66-.79-.39-.12-.55.12c-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.02-.38-1.95-1.2-.72-.64-1.2-1.44-1.35-1.68-.14-.24-.02-.37.11-.5.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.84-.2-.48-.4-.42-.55-.42h-.47" /></svg></a></span>` : '—'}</td>
                     <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${hall ? hall.name : (b.hallName || '—')}</td>
                     <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${fmtDate(b.startDate)}${b.endDate && b.endDate !== b.startDate ? ' → ' + fmtDate(b.endDate) : ''}</td>
                     <td class="px-3 py-3 text-sm font-medium text-slate-600 whitespace-nowrap">${b.startTime || ''}${b.endTime ? ' - ' + b.endTime : ''}</td>
                     <td class="px-3 py-3 text-sm text-slate-600 max-w-[220px]">
-                        <div class="truncate" title="${(b.notes || '').replace(/"/g, '&quot;')}">${b.notes || '—'}</div>
+                        <div class="truncate" title="${escapeHtml(b.notes)}">${escapeHtml(b.notes) || '—'}</div>
                     </td>
                 </tr>`;
             }).join('');
@@ -5132,40 +5004,29 @@ ${notesDisplay ? `
                 const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const fileName = `resta-backup-${dateStr}.json`;
 
-                // الطريقة الأولى: Blob + رابط تحميل (Desktop وأغلب المتصفحات)
-                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                // Blob + رابط تحميل مباشر (يعمل على جميع الأجهزة والمتصفحات وتطبيقات الأندرويد)
                 let downloaded = false;
+                try {
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url  = URL.createObjectURL(blob);
+                    const a    = document.createElement('a');
+                    a.href     = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 3000);
+                    downloaded = true;
+                } catch (_) {}
 
-                if (!isMobile) {
-                    try {
-                        const blob = new Blob([json], { type: 'application/json' });
-                        const url  = URL.createObjectURL(blob);
-                        const a    = document.createElement('a');
-                        a.href     = url;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 3000);
-                        downloaded = true;
-                    } catch (_) {}
-                }
-
-                // الطريقة الثانية: Data URI في tab جديد (موبايل)
-                // المستخدم يضغط "مشاركة" أو "حفظ" من المتصفح مباشرة
+                // إذا فشل Blob (نادراً) — نعرض نافذة نسخ يدوي
                 if (!downloaded) {
-                    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
-                    const win = window.open(dataUri, '_blank');
-                    if (!win) {
-                        // إذا حُجب popup — نعرض نافذة نسخ يدوي
-                        showBackupCopyModal(json, fileName);
-                        return;
-                    }
+                    showBackupCopyModal(json, fileName);
+                    return;
                 }
 
                 showToast(
-                    `✅ تم تصدير النسخة الاحتياطية (${backup.bookings.length} حجز، ${backup.logs.length} سجل)` +
-                    (isMobile ? ' — احفظ الصفحة من متصفحك' : ''),
+                    `✅ تم تصدير النسخة الاحتياطية (${backup.bookings.length} حجز، ${backup.logs.length} سجل)`,
                     'success'
                 );
             } catch (err) {
