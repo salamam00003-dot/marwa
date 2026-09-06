@@ -1100,41 +1100,6 @@
 
         const ADMIN_EMAIL = "salama.m@gmail.com";
 
-        // ─── تشفير كلمات المرور بـ SHA-256 ────────────────────────
-        // نستخدم Web Crypto API المدمجة في المتصفح — لا تحتاج مكتبة خارجية
-        async function hashPassword(password) {
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray  = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        // مقارنة كلمة مرور مُدخَلة بالهاش المحفوظ
-        // — لو الهاش 64 حرف = كلمة مشفرة، قارنها بالهاش
-        // — لو أقل = كلمة قديمة plain text، قارن مباشرة ثم رقّها تلقائياً
-        async function verifyPassword(inputPassword, storedPassword, userEmail) {
-            if (storedPassword && storedPassword.length === 64) {
-                // كلمة مشفرة — قارن بالهاش
-                const inputHash = await hashPassword(inputPassword);
-                return inputHash === storedPassword;
-            } else {
-                // كلمة قديمة plain text — قارن مباشرة ثم رقّها تلقائياً للهاش
-                if (inputPassword === storedPassword) {
-                    // ترقية تلقائية: احفظ الهاش بدل النص الواضح
-                    const hashed = await hashPassword(inputPassword);
-                    const userIndex = state.users.findIndex(u => u.email === userEmail);
-                    if (userIndex !== -1) {
-                        state.users[userIndex].password = hashed;
-                        markUserDirty(userEmail);
-                        saveUsers();
-                        syncToCloud(true);
-                    }
-                    return true;
-                }
-                return false;
-            }
-        }
-
         // ─── وضع الزائر (مشاهدة فقط) ─────────────────────────────
         const GUEST_EMAIL = "__guest_viewer__";
         function isGuest() { return state.currentUserEmail === GUEST_EMAIL; }
@@ -1353,26 +1318,19 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             
-            // Ensure Admin Exists — بيحفظ الباسورد كـ SHA-256 hash
-            const ADMIN_PASS_PLAIN = 'Hamada@1968';
+            // Ensure Admin Exists
+            const ADMIN_PASS = 'Hamada@1968';
             const adminIndex = state.users.findIndex(u => u.email === ADMIN_EMAIL);
-            (async () => {
-                const ADMIN_PASS_HASH = await hashPassword(ADMIN_PASS_PLAIN);
-                if (adminIndex !== -1) {
-                    // لو الباسورد plain text قديم → رقّه للهاش
-                    if (state.users[adminIndex].password !== ADMIN_PASS_HASH &&
-                        state.users[adminIndex].password.length !== 64) {
-                        state.users[adminIndex].password = ADMIN_PASS_HASH;
-                        markUserDirty(ADMIN_EMAIL);
-                        saveUsers();
-                        syncToCloud(true);
-                    }
-                } else {
-                    state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS_HASH, createdAt: new Date().toISOString() });
+            if (adminIndex !== -1) {
+                if (state.users[adminIndex].password !== ADMIN_PASS) {
+                    state.users[adminIndex].password = ADMIN_PASS;
                     saveUsers();
-                    markUserDirty(ADMIN_EMAIL);
                 }
-            })();
+            } else {
+                state.users.push({ email: ADMIN_EMAIL, password: ADMIN_PASS, createdAt: new Date().toISOString() });
+                saveUsers();
+                markUserDirty(ADMIN_EMAIL);
+            }
 
             // تنظيف لمرة واحدة: حذف جميع الحسابات والإبقاء فقط على الحسابات المسموح بها
             if (!localStorage.getItem('hotel_users_cleanup_v1')) {
@@ -1837,7 +1795,7 @@
         }
 
         // --- Auth Functions ---
-        async function handleLogin(e) {
+        function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim().toLowerCase();
             const password = document.getElementById('loginPassword').value;
@@ -1847,8 +1805,7 @@
             const existingUser = state.users.find(u => u.email === email);
 
             if (existingUser) {
-                const ok = await verifyPassword(password, existingUser.password, email);
-                if (ok) {
+                if (existingUser.password === password) {
                     performLogin(email);
                 } else {
                     alert('كلمة المرور غير صحيحة!');
@@ -2239,7 +2196,7 @@
             tbody.innerHTML = state.users.map(user => `
                 <tr class="transition-colors hover:bg-slate-50">
                     <td class="font-bold text-slate-800" style="direction: ltr;">${user.email}</td>
-                    <td><span class="font-mono text-slate-400 bg-slate-100 rounded-lg px-3 py-1 font-bold text-xs" title="كلمة المرور مشفرة (SHA-256)">••••••••</span></td>
+                    <td><span class="font-mono text-[#A88A45] bg-[#A88A45]/10 rounded-lg px-3 py-1 font-bold text-xs">${user.password}</span></td>
                     <td class="text-sm text-slate-500 font-medium">${new Date(user.createdAt).toLocaleDateString('ar-EG')}</td>
                     <td class="flex items-center gap-2 justify-end">
                         <button onclick="changeUserPassword('${user.email}')" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="تغيير كلمة المرور">
@@ -2273,13 +2230,12 @@
             }
         }
 
-        async function changeUserPassword(email) {
+        function changeUserPassword(email) {
             const newPass = prompt(`أدخل كلمة المرور الجديدة للمستخدم ${email}:`);
             if(newPass && newPass.trim() !== "") {
                 const userIndex = state.users.findIndex(u => u.email === email);
                 if(userIndex !== -1) {
-                    // تشفير الباسورد الجديد قبل الحفظ
-                    state.users[userIndex].password = await hashPassword(newPass.trim());
+                    state.users[userIndex].password = newPass.trim();
                     markUserDirty(email);
                     saveUsers();
                     syncToCloud();
@@ -2289,7 +2245,7 @@
             }
         }
 
-        async function addNewUser() {
+        function addNewUser() {
             if (state.currentUserEmail !== ADMIN_EMAIL) return;
 
             const emailInput = document.getElementById('newUserEmail');
@@ -2316,9 +2272,8 @@
                 return;
             }
 
-            // Create user — تشفير الباسورد قبل الحفظ
-            const hashedPass = await hashPassword(password);
-            state.users.push({ email: email, password: hashedPass, createdAt: new Date().toISOString() });
+            // Create user
+            state.users.push({ email: email, password: password, createdAt: new Date().toISOString() });
             markUserDirty(email);
             saveUsers();
             syncToCloud();
