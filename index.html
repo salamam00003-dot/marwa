@@ -289,6 +289,25 @@
         @keyframes pulseSoft { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } }
         .animate-pulse-soft { animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
+        /* Toast: icon pop-in */
+        @keyframes toastIconPop {
+            0% { transform: scale(0.3); opacity: 0; }
+            60% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .toast-icon-pop { animation: toastIconPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+        /* Toast: shrinking progress bar (5s) */
+        @keyframes toastProgressShrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+        .toast-progress-bar { animation: toastProgressShrink 5s linear forwards; transform-origin: right; }
+
+        /* Toast: smooth fade-out (auto-hide or manual close) */
+        @keyframes toastFadeOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(10px) scale(0.95); }
+        }
+        .toast-fade-out { animation: toastFadeOut 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
         /* Table Styles (Modals) */
         .users-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1rem; }
         .users-table th, .users-table td { padding: 1rem; border-bottom: 1px solid #f1f5f9; text-align: right; }
@@ -516,9 +535,6 @@
                         <span>تسجيل الدخول</span>
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     </button>
-                    <button type="button" id="loginScreenBiometricBtn" onclick="loginWithBiometricFromLoginScreen()" class="hidden shrink-0 w-14 h-14 bg-slate-50 hover:bg-slate-100 text-[#6E1418] rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center" title="الدخول بالبصمة">
-                        <i data-lucide="fingerprint" class="w-6 h-6"></i>
-                    </button>
                 </div>
             </form>
             <button type="button" onclick="loginAsGuest()" class="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
@@ -526,27 +542,6 @@
                 <span>الدخول كزائر (مشاهدة فقط)</span>
             </button>
             <p class="text-xs text-center text-slate-400 mt-8 bg-slate-50 py-3 rounded-xl border border-slate-100">للحصول على حساب جديد، يرجى التواصل مع مدير النظام.</p>
-        </div>
-    </div>
-
-    <!-- Biometric Lock Screen -->
-    <div id="biometricLockScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden text-center">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
-            <div id="biometricLockIconWrap" class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm">
-                <i data-lucide="fingerprint" class="w-12 h-12 text-[#6E1418]"></i>
-            </div>
-            <h2 class="text-2xl font-black text-[#6E1418] tracking-tight mb-1">تسجيل الدخول بالبصمة</h2>
-            <p id="biometricLockStatus" class="text-slate-500 mt-2 text-sm mb-8">استخدم بصمتك لفتح التطبيق...</p>
-            <div id="biometricLockActions" class="hidden space-y-3">
-                <button onclick="retryBiometricUnlock()" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
-                    <i data-lucide="fingerprint" class="w-4 h-4"></i>
-                    <span>إعادة المحاولة</span>
-                </button>
-                <button onclick="useBiometricFallbackPassword()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98]">
-                    تسجيل الدخول بكلمة المرور
-                </button>
-            </div>
         </div>
     </div>
 
@@ -1102,6 +1097,8 @@
 
         // ─── وضع الزائر (مشاهدة فقط) ─────────────────────────────
         const GUEST_EMAIL = "__guest_viewer__";
+        // نسخة مخصصة لحساب مروة — تدخل بيه تلقائيًا في كل مرة، بدون شاشة تسجيل دخول
+        const AUTO_LOGIN_EMAIL = "marwa@gmail.com";
         function isGuest() { return state.currentUserEmail === GUEST_EMAIL; }
 
         // ─── الأيام المنصرمة: مغلقة أمام إضافة حجوزات جديدة، ومقفلة أمام التعديل/الحذف/النقل إلا للأدمن ───
@@ -1155,33 +1152,23 @@
             };
         }
 
-        // كتابة الحجوزات: تحديث جزئي بمسار مستقل لكل حجز (bookings/{id}) بدل استبدال
-        // مصفوفة bookings بالكامل. هذا يمنع سيناريو: مستخدمان يحجزان في نفس اللحظة
-        // تقريبًا، فيكتب كل منهما نسخته الكاملة من الشجرة فوق نسخة الآخر ويُفقَد
-        // حجز أحدهما بالكامل. الآن كل حجز/حذف يُكتب في مساره الخاص فقط عبر update()،
-        // فلا تتأثر حجوزات أضافها/حذفها مستخدم آخر بين قراءتنا وكتابتنا.
-        // (logs وusers ما زالا يُكتبان كاستبدال كامل كما كانا — خارج نطاق هذا الإصلاح).
-        async function pushCloudSnapshot(finalLogs, usersForCloud, dirtyBookings, pendingDels) {
+        // كتابة لقطة كاملة: نستبدل عقدة bookings بالكامل بمصفوفة finalBookings
+        // المحسوبة محليًا (وهي أصلًا نتيجة دمج نسخة السيرفر + تعديلاتنا المحلية).
+        // ── ليه رجّعنا لل full overwrite بدل التحديث الجزئي (update بمسار مستقل لكل حجز)؟ ──
+        // التحديث الجزئي كان بيكتب فقط الحجوزات الـ dirty ويحذف فقط اللي في pendingDeletions،
+        // فلو لأي سبب (نسخة قديمة من التطبيق، إرسال مزدوج، أو أي علة توقيت) حجز اتشال محليًا
+        // من غير ما يوصل الـ id بتاعه فعليًا لـ pendingDeletions وقت الرفع، كان بيفضل عالق في
+        // فايربيز للأبد — مفيش حاجة بتقوله يمسحه — وبيرجع يظهر كحجز مكرر في كل مزامنة تالية.
+        // الكتابة الكاملة هنا ذاتية الإصلاح: أي حجز مش موجود في finalBookings بيتشال تلقائيًا
+        // من فايربيز لأن set() بيستبدل العقدة بالكامل، فمفيش نسخ قديمة ممكن تفضل عالقة.
+        async function pushCloudSnapshot(finalBookings, finalLogs, usersForCloud) {
             const now = new Date().toISOString();
-
-            const bookingsUpdate = {};
-            (dirtyBookings || []).forEach(b => {
-                const clean = { ...b };
-                delete clean._isDirty;
-                bookingsUpdate[String(clean.id)] = clean;
-            });
-            (pendingDels || []).forEach(id => { bookingsUpdate[String(id)] = null; });
-
-            const writes = [
+            await Promise.all([
+                db.ref('bookings').set(finalBookings),
                 db.ref('logs').set(finalLogs),
                 db.ref('users').set(usersForCloud),
                 db.ref('meta/updatedAt').set(now)
-            ];
-            if (Object.keys(bookingsUpdate).length > 0) {
-                writes.push(db.ref('bookings').update(bookingsUpdate));
-            }
-            await Promise.all(writes);
-
+            ]);
             _lastKnownUpdatedAt = now; // تسجيل فوري لتفادي إعادة مزامنة ذاتية عند وصول حدث المستمع اللحظي
             return now;
         }
@@ -1308,15 +1295,6 @@
 
         function init() {
             if(typeof lucide!=="undefined") lucide.createIcons();
-            updateLoginScreenBiometricButton();
-
-            // ─── تسجيل دخول تلقائي لحساب marwa@gmail.com ───
-            const HARDCODED_EMAIL = 'marwa@gmail.com';
-            state.currentUserEmail = HARDCODED_EMAIL;
-            state.isLoggedIn = true;
-            localStorage.setItem('hotel_app_email', HARDCODED_EMAIL);
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
             
             // Ensure Admin Exists
             const ADMIN_PASS = 'Hamada@1968';
@@ -1363,9 +1341,10 @@
             });
             if (migrated) localStorage.setItem('hotel_bookings_local', JSON.stringify(state.bookings));
 
-            // تشغيل التطبيق مباشرة بدون شاشة دخول
-            render();
-            if (CLOUD_ENABLED) setupRealtimeSync();
+            // ─── نسخة مخصصة لحساب marwa@gmail.com: دخول تلقائي بدون شاشة تسجيل ───
+            // النسخة دي مقفولة على حساب واحد بس، فبندخل بيه مباشرة في كل مرة
+            // بغض النظر عن أي جلسة/بصمة محفوظة قبل كده، وما بنعرضش شاشة الدخول أبدًا.
+            performLogin(AUTO_LOGIN_EMAIL);
         }
 
         function saveUsers() {
@@ -1479,10 +1458,9 @@
                     usersForCloud = Array.from(usersMap.values());
 
                     await pushCloudSnapshot(
+                        finalBookings,
                         mergeLogs(state.activityLogs, serverLogs),
-                        usersForCloud,
-                        dirtyBookings,
-                        pendingDels
+                        usersForCloud
                     );
 
                     // فحص ثالث بعد الكتابة — لو حصل تغيير أثناء الكتابة، لا تُحدّث state
@@ -1663,43 +1641,62 @@
             const bgClass = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200';
             const textClass = type === 'error' ? 'text-red-800' : 'text-emerald-800';
             const iconBg = type === 'error' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600';
+            const progressClass = type === 'error' ? 'bg-red-400' : 'bg-emerald-400';
             const icon = type === 'error' ? 'trash-2' : 'check-circle';
 
             const clickableStyles = bookingDate
-                ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200'
+                ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99]'
                 : '';
             const clickHint = bookingDate
                 ? `<span class="text-xs font-medium opacity-60 mt-0.5 block">اضغط لعرض التفاصيل</span>`
                 : '';
 
-            toast.className = `pointer-events-auto p-4 rounded-2xl border shadow-xl flex items-center gap-4 animate-slide-up ${bgClass} ${clickableStyles}`;
+            toast.className = `pointer-events-auto relative overflow-hidden p-4 pb-[18px] rounded-2xl border shadow-xl flex items-center gap-4 animate-slide-up transition-transform duration-200 ${bgClass} ${clickableStyles}`;
             toast.innerHTML = `
-                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0 toast-icon-pop">
                     <i data-lucide="${icon}" class="w-5 h-5"></i>
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-bold ${textClass}">${escapeHtml(message)}</p>
                     ${clickHint}
                 </div>
-                <button onclick="event.stopPropagation(); this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors">
+                <button type="button" class="toast-close-btn text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors shrink-0">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
+                <div class="absolute bottom-0 right-0 left-0 h-[3px] bg-black/10">
+                    <div class="toast-progress-bar h-full ${progressClass}"></div>
+                </div>
             `;
 
             if (bookingDate) {
                 toast.addEventListener('click', function() {
+                    dismissToast(toast);
                     showDayDetails(bookingDate);
-                    this.remove();
                 });
             }
+
+            toast.querySelector('.toast-close-btn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                dismissToast(toast);
+            });
             
             container.appendChild(toast);
             if(typeof lucide!=="undefined") lucide.createIcons(); // Ensure icons render
             
-            // إخفاء تلقائي بعد 5 ثوانٍ
-            setTimeout(() => {
-                if (toast && toast.parentElement) toast.remove();
-            }, 5000);
+            // إخفاء تلقائي بعد 5 ثوانٍ (شريط التقدم أعلاه يتزامن مع نفس المدة)
+            toast._toastTimer = setTimeout(() => dismissToast(toast), 5000);
+        }
+
+        // إخفاء التوست بحركة fade-out ناعمة بدل الاختفاء المفاجئ
+        function dismissToast(toast) {
+            if (!toast || toast.dataset.dismissing === '1') return;
+            toast.dataset.dismissing = '1';
+            if (toast._toastTimer) clearTimeout(toast._toastTimer);
+            toast.classList.remove('animate-slide-up');
+            toast.classList.add('toast-fade-out');
+            const remove = () => { if (toast && toast.parentElement) toast.remove(); };
+            toast.addEventListener('animationend', remove, { once: true });
+            setTimeout(remove, 400); // شبكة أمان في حال لم يُطلق animationend
         }
 
         function toggleNotificationsModal() {
@@ -1823,7 +1820,6 @@
             document.getElementById('app').style.display = 'block';
             render();
             if (CLOUD_ENABLED) setupRealtimeSync();
-            offerBiometricSetup(email);
         }
 
         function loginAsGuest() {
@@ -1835,12 +1831,10 @@
             state.currentUserEmail = '';
             state.isLoggedIn = false;
             localStorage.removeItem('hotel_app_email');
-            hideBiometricLockScreen();
             document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('app').style.display = 'none';
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
-            updateLoginScreenBiometricButton();
         }
 
         // ===================== Auto Logout (خروج تلقائي بعد فترة عدم نشاط) =====================
@@ -1863,13 +1857,10 @@
         }
 
         function checkAutoLogout() {
-            if (!state.isLoggedIn) return;
-            const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
-            if (last && (Date.now() - last) > AUTO_LOGOUT_MS) {
-                logout();
-            } else {
-                recordActivityTimestamp();
-            }
+            // ─── نسخة مروة: مفيش خروج تلقائي بسبب عدم النشاط ───
+            // النسخة دي مقفولة على حساب واحد وماعندهاش شاشة تسجيل دخول أصلًا،
+            // فتسجيل الخروج التلقائي كان هيرجّعها لشاشة دخول مش موجودة فعليًا.
+            recordActivityTimestamp();
         }
 
         ['click', 'keydown', 'touchstart', 'mousemove', 'scroll'].forEach(function(evt) {
@@ -1892,293 +1883,6 @@
 
         setInterval(checkAutoLogout, 60 * 1000);
         // ===================== End Auto Logout =====================
-
-        // ===================== Biometric (Fingerprint / Face ID) Login =====================
-        // نظام دخول بالبصمة على مستوى الجهاز: بعد أول تسجيل دخول ناجح بكلمة المرور،
-        // نعرض على المستخدم تفعيل البصمة. لو وافق، نسجل بيانات اعتماد محليًا على هذا
-        // الجهاز فقط. في المرات القادمة، بدل عرض شاشة الدخول العادية مباشرة نطلب تحقق
-        // بالبصمة، ولو نجح نفتح التطبيق تلقائيًا بدون أي نقر على زر الدخول.
-        // فيه مساران للتحقق:
-        //  1) جسر تطبيق أندرويد الأصلي (WebView) عبر window.Android.authenticateBiometric()
-        //     - يُستخدم تلقائيًا لو التطبيق شغال جوه تطبيق أندرويد يوفر الجسر ده.
-        //  2) WebAuthn (Platform Authenticator) للمتصفحات العادية على الموبايل/الديسكتوب.
-        // ملحوظة: الاتنين تحقق محلي على مستوى الجهاز وليس تحقق مركزي عبر سيرفر، وهو
-        // مناسب تمامًا لطبيعة النظام الحالي (لا يوجد باك إند مصادقة).
-
-        function bufferToBase64url(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let str = '';
-            for (let i = 0; i < bytes.byteLength; i++) str += String.fromCharCode(bytes[i]);
-            return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        }
-        function base64urlToBuffer(base64url) {
-            const pad = '='.repeat((4 - (base64url.length % 4)) % 4);
-            const base64 = (base64url + pad).replace(/-/g, '+').replace(/_/g, '/');
-            const raw = atob(base64);
-            const buffer = new ArrayBuffer(raw.length);
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-            return buffer;
-        }
-
-        // --- جسر تطبيق أندرويد الأصلي (WebView) ---
-        function hasAndroidBiometricBridge() {
-            return !!(window.Android && typeof window.Android.authenticateBiometric === 'function');
-        }
-
-        let _androidBiometricResolver = null;
-
-        // دالة لطلب البصمة من تطبيق الأندرويد (بترجع Promise تتحل لما يوصل الرد)
-        function requestBiometricAuth() {
-            return new Promise((resolve) => {
-                if (hasAndroidBiometricBridge()) {
-                    _androidBiometricResolver = resolve;
-                    window.Android.authenticateBiometric();
-                } else {
-                    console.log('هذه الميزة متاحة فقط داخل تطبيق الأندرويد.');
-                    resolve(false);
-                }
-            });
-        }
-
-        // هذه الدالة يستدعيها تطبيق الأندرويد تلقائيًا بعد عملية البصمة
-        function onBiometricResult(success, message) {
-            if (_androidBiometricResolver) {
-                const resolve = _androidBiometricResolver;
-                _androidBiometricResolver = null;
-                resolve(!!success);
-            }
-            if (!success && message) {
-                console.warn('Biometric auth failed:', message);
-            }
-        }
-
-        async function isBiometricAvailable() {
-            if (hasAndroidBiometricBridge()) return true;
-            try {
-                return !!(window.PublicKeyCredential &&
-                    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function' &&
-                    await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function getBiometricCredential() {
-            const credId = localStorage.getItem('hotel_biometric_cred_id');
-            const email  = localStorage.getItem('hotel_biometric_email');
-            return (credId && email) ? { credId, email } : null;
-        }
-
-        function isBiometricRegisteredForCurrentUser() {
-            const stored = getBiometricCredential();
-            return !!(stored && stored.email === state.currentUserEmail);
-        }
-
-        function removeBiometricCredential() {
-            localStorage.removeItem('hotel_biometric_cred_id');
-            localStorage.removeItem('hotel_biometric_email');
-        }
-
-        async function offerBiometricSetup(email) {
-            if (!email || email === GUEST_EMAIL) return;
-            const existing = getBiometricCredential();
-            if (existing && existing.email === email) return; // مفعّلة بالفعل لنفس المستخدم على هذا الجهاز
-            if (!(await isBiometricAvailable())) return;
-            showBiometricSetupPrompt(email);
-        }
-
-        function showBiometricSetupPrompt(email) {
-            const existingModal = document.getElementById('biometricSetupModal');
-            if (existingModal) existingModal.remove();
-            const modal = document.createElement('div');
-            modal.id = 'biometricSetupModal';
-            modal.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-in text-center">
-                    <div class="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-5 flex items-center justify-center border border-slate-200">
-                        <i data-lucide="fingerprint" class="w-10 h-10 text-[#6E1418]"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-[#6E1418] mb-2">تفعيل الدخول بالبصمة</h3>
-                    <p class="text-sm text-slate-500 mb-6">هل تريد استخدام بصمتك لتسجيل الدخول تلقائيًا في المرات القادمة على هذا الجهاز؟</p>
-                    <div class="flex gap-3">
-                        <button id="biometricSetupSkip" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-xl border border-slate-200 transition-all">لاحقًا</button>
-                        <button id="biometricSetupConfirm" class="flex-1 bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-3 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all">تفعيل</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            document.getElementById('biometricSetupSkip').onclick = () => modal.remove();
-            document.getElementById('biometricSetupConfirm').onclick = async () => {
-                modal.remove();
-                await registerBiometric(email);
-                render();
-                updateLoginScreenBiometricButton();
-            };
-        }
-
-        async function registerBiometric(email) {
-            try {
-                if (hasAndroidBiometricBridge()) {
-                    // تأكيد فوري إن البصمة شغالة على الجهاز قبل تفعيلها في التطبيق
-                    const ok = await requestBiometricAuth();
-                    if (!ok) throw new Error('android biometric test failed');
-                    localStorage.setItem('hotel_biometric_cred_id', 'android-native');
-                    localStorage.setItem('hotel_biometric_email', email);
-                    showToast('تم تفعيل الدخول بالبصمة على هذا الجهاز ✅', 'success');
-                    return;
-                }
-                const challenge = crypto.getRandomValues(new Uint8Array(32));
-                const userId = new TextEncoder().encode(email);
-                const publicKey = {
-                    challenge,
-                    rp: { name: 'Resta Events Booking' },
-                    user: { id: userId, name: email, displayName: email.split('@')[0] },
-                    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-                    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
-                    timeout: 60000,
-                    attestation: 'none'
-                };
-                const cred = await navigator.credentials.create({ publicKey });
-                if (!cred) throw new Error('no credential returned');
-                localStorage.setItem('hotel_biometric_cred_id', bufferToBase64url(cred.rawId));
-                localStorage.setItem('hotel_biometric_email', email);
-                showToast('تم تفعيل الدخول بالبصمة على هذا الجهاز ✅', 'success');
-            } catch (err) {
-                console.error('Biometric registration error:', err);
-                showToast('تعذر تفعيل البصمة على هذا الجهاز', 'error');
-            }
-        }
-
-        async function toggleBiometricForCurrentUser() {
-            if (isBiometricRegisteredForCurrentUser()) {
-                removeBiometricCredential();
-                showToast('تم إلغاء الدخول بالبصمة على هذا الجهاز', 'success');
-                render();
-            } else {
-                await registerBiometric(state.currentUserEmail);
-                render();
-            }
-            updateLoginScreenBiometricButton();
-        }
-
-        async function tryBiometricLogin() {
-            const stored = getBiometricCredential();
-            if (!stored || stored.email !== state.currentUserEmail) return false;
-            try {
-                if (hasAndroidBiometricBridge()) {
-                    return await requestBiometricAuth();
-                }
-                const challenge = crypto.getRandomValues(new Uint8Array(32));
-                const publicKey = {
-                    challenge,
-                    allowCredentials: [{ id: base64urlToBuffer(stored.credId), type: 'public-key' }],
-                    userVerification: 'required',
-                    timeout: 60000
-                };
-                const assertion = await navigator.credentials.get({ publicKey });
-                return !!assertion;
-            } catch (err) {
-                console.warn('Biometric login failed or cancelled:', err);
-                return false;
-            }
-        }
-
-        // إظهار/إخفاء أيقونة البصمة في شاشة تسجيل الدخول الأولى حسب توفر البصمة
-        // ووجود بصمة مسجّلة بالفعل على هذا الجهاز
-        async function updateLoginScreenBiometricButton() {
-            const btn = document.getElementById('loginScreenBiometricBtn');
-            if (!btn) return;
-            const stored = getBiometricCredential();
-            if (stored && await isBiometricAvailable()) {
-                btn.classList.remove('hidden');
-            } else {
-                btn.classList.add('hidden');
-            }
-        }
-
-        // الدخول مباشرة بالبصمة من شاشة تسجيل الدخول الأولى (بدون كتابة إيميل/باسورد)
-        async function loginWithBiometricFromLoginScreen() {
-            const stored = getBiometricCredential();
-            if (!stored) {
-                showToast('لا يوجد بصمة مسجلة على هذا الجهاز بعد', 'error');
-                return;
-            }
-            const btn = document.getElementById('loginScreenBiometricBtn');
-            if (btn) btn.disabled = true;
-            state.currentUserEmail = stored.email;
-            const ok = await tryBiometricLogin();
-            if (btn) btn.disabled = false;
-            if (ok) {
-                performLogin(stored.email);
-            } else {
-                showToast('تعذر التحقق من البصمة، حاول تسجيل الدخول بكلمة المرور', 'error');
-            }
-        }
-
-        function unlockApp() {
-            hideBiometricLockScreen();
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            render();
-            if (CLOUD_ENABLED) setupRealtimeSync();
-        }
-
-        async function attemptAutoUnlock() {
-            const stored = getBiometricCredential();
-            const canTryBiometric = stored && stored.email === state.currentUserEmail &&
-                state.currentUserEmail !== GUEST_EMAIL && await isBiometricAvailable();
-
-            if (canTryBiometric) {
-                showBiometricLockScreen();
-                const ok = await tryBiometricLogin();
-                if (ok) {
-                    unlockApp();
-                } else {
-                    showBiometricFallback();
-                }
-            } else {
-                unlockApp();
-            }
-        }
-
-        function showBiometricLockScreen() {
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('app').style.display = 'none';
-            const screen = document.getElementById('biometricLockScreen');
-            screen.classList.remove('hidden');
-            document.getElementById('biometricLockStatus').textContent = 'استخدم بصمتك لفتح التطبيق...';
-            document.getElementById('biometricLockActions').classList.add('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        function hideBiometricLockScreen() {
-            const screen = document.getElementById('biometricLockScreen');
-            if (screen) screen.classList.add('hidden');
-        }
-
-        function showBiometricFallback() {
-            document.getElementById('biometricLockStatus').textContent = 'تعذر التحقق من البصمة';
-            document.getElementById('biometricLockActions').classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        async function retryBiometricUnlock() {
-            document.getElementById('biometricLockStatus').textContent = 'استخدم بصمتك لفتح التطبيق...';
-            document.getElementById('biometricLockActions').classList.add('hidden');
-            const ok = await tryBiometricLogin();
-            if (ok) {
-                unlockApp();
-            } else {
-                showBiometricFallback();
-            }
-        }
-
-        function useBiometricFallbackPassword() {
-            hideBiometricLockScreen();
-            document.getElementById('loginModal').style.display = 'flex';
-        }
-        // ===================== End Biometric Login =====================
 
         // --- Admin Functions ---
         async function toggleUsersModal() {
@@ -3492,18 +3196,6 @@ ${notesDisplay ? `
                                 </button>
                             ` : ''}
 
-                            ${((window.PublicKeyCredential || hasAndroidBiometricBridge()) && state.currentUserEmail !== GUEST_EMAIL) ? `
-                                <button onclick="toggleBiometricForCurrentUser()" class="p-2 sm:p-2.5 ${isBiometricRegisteredForCurrentUser() ? 'text-[#6E1418] bg-red-50' : 'text-slate-500 hover:text-[#6E1418] hover:bg-red-50'} rounded-xl transition-all shrink-0" title="${isBiometricRegisteredForCurrentUser() ? 'إلغاء الدخول بالبصمة' : 'تفعيل الدخول بالبصمة'}">
-                                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
-                                </button>
-                            ` : ''}
-
-                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
-                            
-                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
-                                <span class="hidden sm:inline">خروج</span>
-                                <i data-lucide="log-out" class="w-5 h-5"></i>
-                            </button>
                         </div>
                     </div>
                 </header>
@@ -4100,6 +3792,29 @@ ${notesDisplay ? `
 
         function handleGlobalBookingSubmit(e) {
             e.preventDefault();
+
+            // ─── منع الإرسال المزدوج ────────────────────────────────────────
+            // نقرة مزدوجة (أو تاتش سريع مرتين) على زر الحفظ كانت تسبب تنفيذ هذه
+            // الدالة مرتين قبل ما نقدر نغلق المودال: التنفيذ الأول يحفظ التعديل
+            // بنجاح ويصفّر state.editingBookingId، لكن التنفيذ الثاني كان يشوف
+            // إن مفيش editingBookingId فيعتبرها "حجز جديد" ويضيف نسخة مطابقة
+            // لنفس اليوم بنفس البيانات. الحارس ده يمنع أي تنفيذ ثاني لحد ما
+            // الأول يخلص تمامًا (نجاح أو فشل بالتحقق).
+            if (handleGlobalBookingSubmit._busy) return;
+            handleGlobalBookingSubmit._busy = true;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                return handleGlobalBookingSubmitInner(e);
+            } finally {
+                handleGlobalBookingSubmit._busy = false;
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
+        function handleGlobalBookingSubmitInner(e) {
             const form   = e.target;
             const hallId = form.hallId.value;
             const hall   = HALLS.find(h => h.id === hallId);
