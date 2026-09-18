@@ -2796,19 +2796,6 @@ ${acknowledgmentHtml}
                                 </button>
                             ` : ''}
 
-                            ${((window.PublicKeyCredential || hasAndroidBiometricBridge()) && state.currentUserEmail !== GUEST_EMAIL) ? `
-                                <button onclick="toggleBiometricForCurrentUser()" class="p-2 sm:p-2.5 ${isBiometricRegisteredForCurrentUser() ? 'text-[#6E1418] bg-red-50' : 'text-slate-500 hover:text-[#6E1418] hover:bg-red-50'} rounded-xl transition-all shrink-0" title="${isBiometricRegisteredForCurrentUser() ? 'إلغاء الدخول بالبصمة' : 'تفعيل الدخول بالبصمة'}">
-                                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
-                                </button>
-                            ` : ''}
-
-                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
-                            
-                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
-                                <span class="hidden sm:inline">خروج</span>
-                                <i data-lucide="log-out" class="w-5 h-5"></i>
-                            </button>
-                        </div>
                     </div>
                 </header>
             `;
