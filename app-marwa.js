@@ -2193,8 +2193,6 @@
 </div>` : '';
 
             const rows = [
-                [b.eventType === 'wedding' ? 'الاسم' : 'الشركة / الجهة', b.companyName || '-'],
-                ['القاعة', hall.name],
                 ['التاريخ', dateRow],
                 ['الوقت', timeDisplay],
                 ['رقم الهاتف', b.phone || 'لا يوجد رقم'],
@@ -2203,7 +2201,7 @@
             ];
 
             weddingSummaryRows(b, { hideRoomsExtra: true })
-                .filter(r => r[0] !== 'المنيو' && r[0] !== 'ملاحظات المنيو')
+                .filter(r => r[0] !== 'المنيو' && r[0] !== 'ملاحظات المنيو' && r[0] !== 'نوع الحجز')
                 .forEach(r => rows.push(r));
 
             // منيو باقة الفرح — تُعرض في صناديق منفصلة وواضحة بدل سطر نصي متلاصق
@@ -2298,18 +2296,16 @@
         border-radius: 4px;
     }
     .company-banner {
-        background: linear-gradient(135deg, #6E1418, #8a1c22);
-        color: #fff;
-        border-radius: 12px;
-        padding: 5px 14px;
-        margin-bottom: 6px;
+        border-bottom: 2px solid #A88A45;
+        padding: 4px 2px 8px;
+        margin-bottom: 8px;
         display: flex;
         flex-direction: column;
         gap: 1px;
     }
-    .company-banner .cb-label { font-size: 9.5px; opacity: 0.75; font-weight: 700; letter-spacing: 0.4px; }
-    .company-banner .cb-value { font-size: 14px; font-weight: 900; color: #fff; }
-    .company-banner .cb-hall { font-size: 9.5px; font-weight: 700; color: #A88A45; margin-top: 1px; }
+    .company-banner .cb-label { font-size: 9.5px; opacity: 0.75; font-weight: 700; letter-spacing: 0.4px; color: #64748b; }
+    .company-banner .cb-value { font-size: 14px; font-weight: 900; color: #334155; }
+    .company-banner .cb-hall { font-size: 15px; font-weight: 900; color: #6E1418; margin-top: 2px; }
     table {
         width: 100%;
         border-collapse: collapse;
