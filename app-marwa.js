@@ -2365,7 +2365,7 @@
         padding: 5px 8px;
         font-size: 13px;
         font-weight: 900;
-        color: #8f753a;
+        color: #000000;
         text-align: center;
         line-height: 1.3;
     }
