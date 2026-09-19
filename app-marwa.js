@@ -206,14 +206,9 @@
             { id: 'pool', name: 'حمام السباحة', icon: 'waves', color: 'bg-cyan-50 text-cyan-700', border: 'border-cyan-400' },
         ];
 
-        // === نسخة خاصة بمستخدم ثابت: marwa@gmail.com — بدون شاشة تسجيل دخول أو بصمة ===
-        const FIXED_LOGIN_EMAIL = 'marwa@gmail.com';
-        if (!localStorage.getItem('hotel_app_email')) {
-            localStorage.setItem('hotel_app_email', FIXED_LOGIN_EMAIL);
-        }
         let state = {
-            currentUserEmail: FIXED_LOGIN_EMAIL,
-            isLoggedIn: true,
+            currentUserEmail: localStorage.getItem('hotel_app_email') || '',
+            isLoggedIn: !!localStorage.getItem('hotel_app_email'),
             users: JSON.parse(localStorage.getItem('hotel_users_db')) || [],
             view: 'dashboard',
             activeTab: 'calendar',
@@ -1153,8 +1148,21 @@
         }
 
         async function attemptAutoUnlock() {
-            // نسخة marwa@gmail.com: دخول مباشر دائمًا بدون أي فحص بصمة
-            unlockApp();
+            const stored = getBiometricCredential();
+            const canTryBiometric = stored && stored.email === state.currentUserEmail &&
+                state.currentUserEmail !== GUEST_EMAIL && await isBiometricAvailable();
+
+            if (canTryBiometric) {
+                showBiometricLockScreen();
+                const ok = await tryBiometricLogin();
+                if (ok) {
+                    unlockApp();
+                } else {
+                    showBiometricFallback();
+                }
+            } else {
+                unlockApp();
+            }
         }
 
         function showBiometricLockScreen() {
@@ -2194,7 +2202,34 @@
                 ['تاريخ الإنشاء', createdAtDisplay],
             ];
 
-            weddingSummaryRows(b, { hideRoomsExtra: true }).forEach(r => rows.push(r));
+            weddingSummaryRows(b, { hideRoomsExtra: true })
+                .filter(r => r[0] !== 'المنيو' && r[0] !== 'ملاحظات المنيو')
+                .forEach(r => rows.push(r));
+
+            // منيو باقة الفرح — تُعرض في صناديق منفصلة وواضحة بدل سطر نصي متلاصق
+            let menuBoxHtml = '';
+            if (b.eventType === 'wedding' && b.wedding) {
+                const wPkg = state.weddingSettings.packages.find(p => p.id === b.wedding.packageId);
+                const wMenuItems = (b.wedding.menuItems && b.wedding.menuItems.filter(m => m.trim()).length)
+                    ? b.wedding.menuItems.filter(m => m.trim())
+                    : (wPkg && wPkg.menuItems ? wPkg.menuItems.filter(m => m.trim()) : []);
+                const wMenuNotes = (b.wedding.menuNotes && b.wedding.menuNotes.trim())
+                    ? b.wedding.menuNotes.trim()
+                    : (wPkg && wPkg.menuNotes ? wPkg.menuNotes.trim() : '');
+                if (wMenuItems.length || wMenuNotes) {
+                    const itemsGridHtml = wMenuItems.length ? `
+                        <div class="menu-grid">
+                            ${wMenuItems.map(item => `<div class="menu-item-box">${item.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('')}
+                        </div>` : '';
+                    const notesHtml = wMenuNotes ? `<div class="menu-notes">${wMenuNotes.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+                    menuBoxHtml = `
+<div class="menu-box">
+    <div class="menu-box-title">منيو الباقة</div>
+    ${itemsGridHtml}
+    ${notesHtml}
+</div>`;
+                }
+            }
 
             const printLinks = getBookingLinks(b);
             if (printLinks.length) {
@@ -2302,6 +2337,48 @@
         font-weight: 600;
         line-height: 1.25;
     }
+    .menu-box {
+        margin-top: 5px;
+        background: #fdf6f2;
+        border: 1px solid #A88A45;
+        border-radius: 8px;
+        padding: 6px 12px;
+    }
+    .menu-box-title {
+        font-size: 10.5px;
+        font-weight: 900;
+        color: #6E1418;
+        margin-bottom: 5px;
+        padding-bottom: 3px;
+        border-bottom: 1px solid #A88A45;
+    }
+    .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        margin-bottom: 4px;
+    }
+    .menu-item-box {
+        background: #ffffff;
+        border: 1px solid #A88A45;
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 13px;
+        font-weight: 900;
+        color: #8f753a;
+        text-align: center;
+        line-height: 1.3;
+    }
+    .menu-notes {
+        font-size: 10px;
+        color: #78350f;
+        font-weight: 600;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 6px;
+        padding: 4px 10px;
+        line-height: 1.3;
+    }
     ${notesDisplay ? `
     .notes-box {
         margin-top: 5px;
@@ -2375,6 +2452,7 @@
 <table>
     <tbody>${rowsHtml}</tbody>
 </table>
+${menuBoxHtml}
 ${notesDisplay ? `
 <div class="notes-box">
     <div class="nb-title">ملاحظات</div>
@@ -2796,6 +2874,19 @@ ${acknowledgmentHtml}
                                 </button>
                             ` : ''}
 
+                            ${((window.PublicKeyCredential || hasAndroidBiometricBridge()) && state.currentUserEmail !== GUEST_EMAIL) ? `
+                                <button onclick="toggleBiometricForCurrentUser()" class="p-2 sm:p-2.5 ${isBiometricRegisteredForCurrentUser() ? 'text-[#6E1418] bg-red-50' : 'text-slate-500 hover:text-[#6E1418] hover:bg-red-50'} rounded-xl transition-all shrink-0" title="${isBiometricRegisteredForCurrentUser() ? 'إلغاء الدخول بالبصمة' : 'تفعيل الدخول بالبصمة'}">
+                                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
+                                </button>
+                            ` : ''}
+
+                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
+                            
+                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
+                                <span class="hidden sm:inline">خروج</span>
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                            </button>
+                        </div>
                     </div>
                 </header>
             `;
