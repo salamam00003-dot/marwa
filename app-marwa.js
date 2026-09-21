@@ -2438,8 +2438,9 @@
 
             const printLinks = getBookingLinks(b);
             if (printLinks.length) {
+                // word-break: الروابط الطويلة (Google Drive مثلاً) لا تخرج عن عرض الصفحة أو تُقطع عند الطباعة
                 const linksHtml = printLinks.map((url, i) =>
-                    `<div>${printLinks.length > 1 ? `مرفق ${i + 1}: ` : ''}<a href="${url}" target="_blank" style="color:#1d4ed8; font-weight:700;">${url}</a></div>`
+                    `<div style="word-break:break-all; overflow-wrap:anywhere;">${printLinks.length > 1 ? `مرفق ${i + 1}: ` : ''}<a dir="ltr" href="${escapeHtml(url)}" target="_blank" style="color:#1d4ed8; font-weight:700; unicode-bidi:isolate;">${escapeHtml(url)}</a></div>`
                 ).join('');
                 rows.push(['روابط المرفقات', linksHtml]);
             }
@@ -2746,8 +2747,17 @@ ${acknowledgmentHtml}
                 `تاريخ الإنشاء: ${createdAtDisplay}`,
             ];
 
+            if (b.eventType === 'other') {
+                lines.splice(4, 0, 'نوع المناسبة: مناسبة خاصة أخرى');
+            }
+
             if (b.eventType === 'wedding' && b.wedding) {
                 lines.push('', '-- تفاصيل باقة الفرح --', ...weddingSummaryLines(b, { excludePrices: true }));
+            }
+
+            // المناسبة الخاصة: كل التفاصيل (المنيو بعدد الأفراد والأسعار + التجهيزات) ثم الملاحظات ثم روابط المرفقات
+            if (b.eventType === 'other') {
+                lines.push(...otherEventSummaryLines(b));
             }
 
             if (b.notes) {
@@ -2763,7 +2773,50 @@ ${acknowledgmentHtml}
             const subject = `تفاصيل الحجز - ${b.companyName || ''} - ${hall.name}`;
             const body = lines.join('\n');
             const mailtoUrl = `mailto:${BOOKING_EMAIL_RECIPIENTS.join(';')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+            // بعض برامج البريد تقتطع الرسائل الطويلة جدًا في رابط mailto — لذلك ننسخ النص كاملًا احتياطيًا
+            if (mailtoUrl.length > 6000 && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(body).then(
+                    () => showToast('نص البريد طويل — تم نسخه كاملًا، الصقه في الرسالة إن ظهر ناقصًا', 'success'),
+                    () => {}
+                );
+            }
             window.location.href = mailtoUrl;
+        }
+
+        // سطور تفاصيل المناسبة الخاصة (المنيو + التجهيزات بالأسعار) — تُستخدم في البريد والمشاركة
+        function otherEventSummaryLines(b) {
+            const lines = [];
+            if (b.eventType === 'other' && b.otherMenu && b.otherMenu.menus) {
+                const fmtMenuDate = d => d ? d.split('-').reverse().join('/') : '';
+                const activeMenus = b.otherMenu.menus.filter(m => (m.items && m.items.filter(i => i.trim()).length) || (m.notes && m.notes.trim()) || (m.guests > 0) || (m.pricePerPerson > 0));
+                if (activeMenus.length) {
+                    lines.push('', '-- منيو المناسبة --');
+                    activeMenus.forEach((m, i) => {
+                        const menuItems = (m.items || []).filter(it => it.trim());
+                        const menuNotes = (m.notes || '').trim();
+                        const dt = [fmtMenuDate(m.date), m.time].filter(Boolean).join(' - ');
+                        const guests = m.guests || 0;
+                        const price = m.pricePerPerson || 0;
+                        const total = (m.total !== undefined && m.total !== null) ? m.total : (guests * price);
+                        if (activeMenus.length > 1) lines.push(`منيو ${i + 1}:`);
+                        if (m.hallName) lines.push(`  القاعة: ${m.hallName}`);
+                        if (dt) lines.push(`  الموعد: ${dt}`);
+                        if (guests > 0 || price > 0) lines.push(`  عدد الأفراد: ${guests} × ${fmtEGP(price)} = ${fmtEGP(total)}`);
+                        if (menuItems.length) lines.push(`  الأصناف: ${menuItems.join('، ')}`);
+                        if (menuNotes) lines.push(`  ملاحظات: ${menuNotes}`);
+                    });
+                }
+            }
+
+            if (b.eventType === 'other' && b.otherMenu && Array.isArray(b.otherMenu.equipment) && b.otherMenu.equipment.length) {
+                const eqs = b.otherMenu.equipment;
+                lines.push('', '-- التجهيزات --');
+                eqs.forEach(e => lines.push(`  ${e.name}${(Number(e.qty) || 1) > 1 ? ' × ' + Number(e.qty) : ''}: ${fmtEGP(e.total)}`));
+                lines.push(`  إجمالي التجهيزات: ${fmtEGP(eqs.reduce((sum, e) => sum + (Number(e.total) || 0), 0))}`);
+            }
+
+            return lines;
         }
 
         // بناء نص تفاصيل الحجز (نفس محتوى إرسال البريد) لاستخدامه في المشاركة
@@ -2818,34 +2871,7 @@ ${acknowledgmentHtml}
                 lines.push('', '-- تفاصيل باقة الفرح --', ...weddingSummaryLines(b));
             }
 
-            if (b.eventType === 'other' && b.otherMenu && b.otherMenu.menus) {
-                const fmtMenuDate = d => d ? d.split('-').reverse().join('/') : '';
-                const activeMenus = b.otherMenu.menus.filter(m => (m.items && m.items.filter(i => i.trim()).length) || (m.notes && m.notes.trim()) || (m.guests > 0) || (m.pricePerPerson > 0));
-                if (activeMenus.length) {
-                    lines.push('', '-- منيو المناسبة --');
-                    activeMenus.forEach((m, i) => {
-                        const menuItems = (m.items || []).filter(it => it.trim());
-                        const menuNotes = (m.notes || '').trim();
-                        const dt = [fmtMenuDate(m.date), m.time].filter(Boolean).join(' - ');
-                        const guests = m.guests || 0;
-                        const price = m.pricePerPerson || 0;
-                        const total = (m.total !== undefined && m.total !== null) ? m.total : (guests * price);
-                        if (activeMenus.length > 1) lines.push(`منيو ${i + 1}:`);
-                        if (m.hallName) lines.push(`  القاعة: ${m.hallName}`);
-                        if (dt) lines.push(`  الموعد: ${dt}`);
-                        if (guests > 0 || price > 0) lines.push(`  عدد الأفراد: ${guests} × ${fmtEGP(price)} = ${fmtEGP(total)}`);
-                        if (menuItems.length) lines.push(`  الأصناف: ${menuItems.join('، ')}`);
-                        if (menuNotes) lines.push(`  ملاحظات: ${menuNotes}`);
-                    });
-                }
-            }
-
-            if (b.eventType === 'other' && b.otherMenu && Array.isArray(b.otherMenu.equipment) && b.otherMenu.equipment.length) {
-                const eqs = b.otherMenu.equipment;
-                lines.push('', '-- التجهيزات --');
-                eqs.forEach(e => lines.push(`  ${e.name}${(Number(e.qty) || 1) > 1 ? ' × ' + Number(e.qty) : ''}: ${fmtEGP(e.total)}`));
-                lines.push(`  إجمالي التجهيزات: ${fmtEGP(eqs.reduce((sum, e) => sum + (Number(e.total) || 0), 0))}`);
-            }
+            if (b.eventType === 'other') lines.push(...otherEventSummaryLines(b));
 
             if (b.notes) {
                 lines.push('', `ملاحظات: ${b.notes}`);
