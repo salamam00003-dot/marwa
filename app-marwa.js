@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// نسخة خاصة بحساب marwa@gmail.com فقط (Kiosk): دخول تلقائي بدون شاشة تسجيل دخول،
+// بدون بصمة، بدون زر خروج، وبصلاحيات المستخدم العادي.
+// ═══════════════════════════════════════════════════════════════════════════
         // --- Configuration ---
         // تم الانتقال من Google Apps Script + Google Sheets إلى Firebase Realtime Database
         // كل منطق المزامنة، الـ opsVersion، الإشعارات... إلخ باقٍ كما هو تماماً،
@@ -20,6 +24,7 @@
         let _lastKnownUpdatedAt = null;
 
         const ADMIN_EMAIL = "salama.m@gmail.com";
+        const KIOSK_EMAIL = "marwa@gmail.com"; // الحساب الثابت لهذه النسخة (مستخدم عادي)
 
         // منع تغيير قيمة حقول الأرقام (input type="number") بالخطأ عن طريق سكرول
         // عجلة الماوس أثناء التركيز عليها — الحقول لسه بتتعدل عادي بالكيبورد أو
@@ -207,8 +212,8 @@
         ];
 
         let state = {
-            currentUserEmail: localStorage.getItem('hotel_app_email') || '',
-            isLoggedIn: !!localStorage.getItem('hotel_app_email'),
+            currentUserEmail: KIOSK_EMAIL,
+            isLoggedIn: true,
             users: JSON.parse(localStorage.getItem('hotel_users_db')) || [],
             view: 'dashboard',
             activeTab: 'calendar',
@@ -854,6 +859,7 @@
         }
 
         function logout() {
+            return; // نسخة marwa: لا يوجد تسجيل خروج
             if (CLOUD_ENABLED) teardownRealtimeSync();
             state.currentUserEmail = '';
             state.isLoggedIn = false;
@@ -886,6 +892,7 @@
         }
 
         function checkAutoLogout() {
+            return; // نسخة marwa: لا يوجد خروج تلقائي بعد الخمول
             if (!state.isLoggedIn) return;
             const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
             if (last && (Date.now() - last) > AUTO_LOGOUT_MS) {
@@ -1148,6 +1155,8 @@
         }
 
         async function attemptAutoUnlock() {
+            unlockApp(); // نسخة marwa: فتح مباشر بدون بصمة
+            return;
             const stored = getBiometricCredential();
             const canTryBiometric = stored && stored.email === state.currentUserEmail &&
                 state.currentUserEmail !== GUEST_EMAIL && await isBiometricAvailable();
@@ -1759,6 +1768,113 @@
             cleanupTouchDrag();
         }
 
+        // ═══════════════════ نسخ حجز إلى تاريخ آخر ═══════════════════
+        function addDaysToDateStr(dateStr, n) {
+            const d = new Date(dateStr + 'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate() + n);
+            return d.toISOString().split('T')[0];
+        }
+
+        function diffDaysDateStr(a, b) {
+            return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+        }
+
+        // النطاق الكامل للحجز (من أول يوم لآخر يوم) بنفس منطق شاشة التعديل
+        function getBookingGroupRange(booking) {
+            let startDate = booking.startDate, endDate = booking.endDate || booking.startDate;
+            if (booking.originalRange && booking.originalRange.includes(' to ')) {
+                const p = booking.originalRange.split(' to ');
+                startDate = p[0]; endDate = p[1];
+            } else {
+                const gKey = booking.groupId || booking.id.toString().split('_d')[0];
+                const days = state.bookings
+                    .filter(x => x.groupId === gKey || x.id === gKey)
+                    .map(x => x.startDate).sort();
+                if (days.length > 0) { startDate = days[0]; endDate = days[days.length - 1]; }
+            }
+            return { startDate, endDate };
+        }
+
+        // الدفعات المستلمة خاصة بالحجز الأصلي — لا تُنسخ
+        function copyWeddingForNewBooking(w) {
+            if (!w) return null;
+            const c = JSON.parse(JSON.stringify(w));
+            c.payments = [];
+            return c;
+        }
+
+        // تواريخ المنيوهات تُزاح بنفس عدد الأيام الذي أُزيح به الحجز
+        function copyOtherMenuForNewBooking(om, offsetDays) {
+            if (!om) return null;
+            const c = JSON.parse(JSON.stringify(om));
+            (c.menus || []).forEach(m => { if (m.date) m.date = addDaysToDateStr(m.date, offsetDays); });
+            return c;
+        }
+
+        function copyBooking(id) {
+            if (isGuest()) return;
+            const booking = state.bookings.find(b => b.id === id);
+            if (!booking) return;
+            const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
+            if (!isAdmin && state.currentUserEmail !== booking.createdBy) {
+                alert('عذراً، يمكنك نسخ حجوزاتك الخاصة فقط.');
+                return;
+            }
+            if (!isAdmin && booking.eventType && booking.eventType !== 'normal') {
+                alert('نسخ حجوزات الأفراح والمناسبات الخاصة متاح للأدمن فقط.');
+                return;
+            }
+            copyBooking._srcId = id;
+            const range = getBookingGroupRange(booking);
+            const fmt = d => d ? d.split('-').reverse().join('/') : '';
+            const days = diffDaysDateStr(range.startDate, range.endDate) + 1;
+            const hall = HALLS.find(h => h.id === booking.hallId);
+            document.getElementById('copyBookingSummary').innerHTML =
+                'الحجز الأصلي: <strong class="text-[#6E1418]">' + escapeHtml(booking.companyName || '') + '</strong>' +
+                (hall ? '<br>القاعة: <strong>' + escapeHtml(hall.name) + '</strong>' : '') +
+                '<br>من <strong>' + fmt(range.startDate) + '</strong> إلى <strong>' + fmt(range.endDate) + '</strong>' +
+                (days > 1 ? ' (' + days + ' أيام)' : '');
+            document.getElementById('copyBookingNewStart').value = '';
+            const prev = document.getElementById('copyBookingRangePreview');
+            prev.classList.add('hidden'); prev.textContent = '';
+            document.getElementById('copyBookingModal').classList.remove('hidden');
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function onCopyBookingDateChange() {
+            const booking = state.bookings.find(b => b.id === copyBooking._srcId);
+            const val = document.getElementById('copyBookingNewStart').value;
+            const prev = document.getElementById('copyBookingRangePreview');
+            if (!booking || !val) { prev.classList.add('hidden'); prev.textContent = ''; return; }
+            const range = getBookingGroupRange(booking);
+            const span = diffDaysDateStr(range.startDate, range.endDate);
+            const newEnd = addDaysToDateStr(val, span);
+            const fmt = d => d.split('-').reverse().join('/');
+            prev.textContent = span > 0
+                ? 'الحجز الجديد: من ' + fmt(val) + ' إلى ' + fmt(newEnd) + ' (' + (span + 1) + ' أيام)'
+                : 'الحجز الجديد: ' + fmt(val);
+            prev.classList.remove('hidden');
+        }
+
+        function closeCopyBookingModal() {
+            document.getElementById('copyBookingModal').classList.add('hidden');
+        }
+
+        function confirmCopyBooking() {
+            const booking = state.bookings.find(b => b.id === copyBooking._srcId);
+            if (!booking) { closeCopyBookingModal(); return; }
+            const newStart = document.getElementById('copyBookingNewStart').value;
+            if (!newStart) { showToast('اختر تاريخ بداية الحجز الجديد', 'error'); return; }
+            if (state.currentUserEmail !== ADMIN_EMAIL && isPastDateStr(newStart)) {
+                alert('عذراً، لا يمكنك إضافة حجز في يوم منصرم. هذه الصلاحية للأدمن فقط.');
+                return;
+            }
+            closeCopyBookingModal();
+            closeDetailsModal();
+            // تُفتح شاشة الحجز معبّأة بكل التفاصيل وبالتواريخ الجديدة — ويُحفظ كحجز جديد بعد المراجعة (مع فحص التعارض المعتاد)
+            openGlobalBookingForEdit(booking.id, booking.groupId || booking.id, { newStart: newStart });
+        }
+
         function editBooking(id) {
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
@@ -1973,6 +2089,8 @@
                 const isOwner = b.createdBy === state.currentUserEmail;
                 const isAdmin = state.currentUserEmail === ADMIN_EMAIL;
                 const canControl = isAdmin || (isOwner && !isPastDateStr(b.startDate));
+                // النسخ: الأدمن دائمًا، وصاحب الحجز للحجوزات العادية فقط (حتى لو الحجز الأصلي في يوم منصرم — النسخ لتاريخ جديد)
+                const canCopy = isAdmin || (isOwner && (!b.eventType || b.eventType === 'normal'));
 
                 if (b.detailsHidden && !isAdmin) {
                     return `
@@ -2041,6 +2159,48 @@
                                 })()}
 
                                 ${(() => {
+                                    if (b.eventType !== 'other' || !b.otherMenu || !b.otherMenu.menus) return '';
+                                    const menus = b.otherMenu.menus.filter(m => (m.items && m.items.filter(i => i.trim()).length) || (m.notes && m.notes.trim()) || (m.guests > 0) || (m.pricePerPerson > 0));
+                                    if (!menus.length) return '';
+                                    const fmtMenuDate = (d) => d ? d.split('-').reverse().join('/') : '';
+                                    return `<div class="mt-4 p-3 bg-[#6E1418]/5 rounded-xl border border-[#6E1418]/10 space-y-3 text-sm">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-black text-[#6E1418] mb-1"><i data-lucide="utensils" class="w-3.5 h-3.5"></i> منيو المناسبة</div>
+                                        ${menus.map((m, i) => {
+                                            const menuItems = (m.items || []).filter(it => it.trim());
+                                            const menuNotes = (m.notes || '').trim();
+                                            const dt = [fmtMenuDate(m.date), m.time].filter(Boolean).join(' — ');
+                                            const hallName = (m.hallName || '').trim();
+                                            const guests = m.guests || 0;
+                                            const price = m.pricePerPerson || 0;
+                                            const total = (m.total !== undefined && m.total !== null) ? m.total : (guests * price);
+                                            return `<div class="${i > 0 ? 'pt-3 border-t border-[#6E1418]/10' : ''} space-y-1.5">
+                                                ${(menus.length > 1 || dt || hallName) ? `<div class="flex items-center justify-between flex-wrap gap-1.5 text-[11px] font-bold text-slate-500">
+                                                    <span>${menus.length > 1 ? 'منيو ' + (i + 1) : ''}</span>
+                                                    <span class="flex items-center gap-2 flex-wrap">
+                                                        ${hallName ? `<span class="flex items-center gap-1 text-[#6E1418]"><i data-lucide="map-pin" class="w-3 h-3"></i>${escapeHtml(hallName)}</span>` : ''}
+                                                        ${dt ? `<span class="flex items-center gap-1 text-[#8f753a]"><i data-lucide="calendar-clock" class="w-3 h-3"></i>${escapeHtml(dt)}</span>` : ''}
+                                                    </span>
+                                                </div>` : ''}
+                                                ${menuItems.length ? `<div class="flex flex-wrap gap-1.5">${menuItems.map(item => `<span class="text-xs font-bold bg-[#A88A45]/10 text-[#8f753a] px-2.5 py-1 rounded-lg border border-[#A88A45]/20">${escapeHtml(item)}</span>`).join('')}</div>` : ''}
+                                                ${(guests > 0 || price > 0) ? `<div class="flex justify-between text-xs font-bold text-slate-600"><span>${guests} فرد × ${fmtEGP(price)}</span><span class="text-[#6E1418]">${fmtEGP(total)}</span></div>` : ''}
+                                                ${menuNotes ? `<p class="text-xs text-slate-500 font-medium bg-amber-50 rounded-lg px-2.5 py-1.5 border border-amber-100">${escapeHtml(menuNotes)}</p>` : ''}
+                                            </div>`;
+                                        }).join('')}
+                                    </div>`;
+                                })()}
+
+                                ${(() => {
+                                    if (b.eventType !== 'other' || !b.otherMenu || !Array.isArray(b.otherMenu.equipment) || !b.otherMenu.equipment.length) return '';
+                                    const eqs = b.otherMenu.equipment;
+                                    const eqSum = eqs.reduce((sum, e) => sum + (Number(e.total) || 0), 0);
+                                    return `<div class="mt-4 p-3 bg-[#6E1418]/5 rounded-xl border border-[#6E1418]/10 space-y-1.5 text-sm">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-black text-[#6E1418] mb-1"><i data-lucide="presentation" class="w-3.5 h-3.5"></i> التجهيزات</div>
+                                        ${eqs.map(e => `<div class="flex justify-between gap-2 text-xs font-bold text-slate-600"><span dir="auto">${escapeHtml(e.name)}${(Number(e.qty) || 1) > 1 ? ' × ' + Number(e.qty) : ''}</span><span class="shrink-0">${fmtEGP(e.total)}</span></div>`).join('')}
+                                        <div class="flex justify-between text-xs font-black text-[#6E1418] pt-1.5 border-t border-[#6E1418]/10"><span>إجمالي التجهيزات</span><span>${fmtEGP(eqSum)}</span></div>
+                                    </div>`;
+                                })()}
+
+                                ${(() => {
                                     const bImages = getBookingImages(b);
                                     if (!bImages.length) return '';
                                     const thumbs = bImages.map((img, i) =>
@@ -2087,14 +2247,20 @@
                                 </div>
                             </div>
                         </div>
-                        ${canControl ? `
-                            <div class="mt-5 pt-4 border-t border-slate-100 flex gap-3">
-                                <button onclick="editBooking('${b.id}')" class="flex-1 px-5 py-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm">
+                        ${(canControl || canCopy) ? `
+                            <div class="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-3">
+                                ${canControl ? `
+                                <button onclick="editBooking('${b.id}')" class="flex-1 min-w-[110px] px-3 py-2 text-sm font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i> تعديل الحجز
-                                </button>
-                                <button onclick="deleteBooking('${b.id}')" class="flex-1 px-5 py-2 text-sm font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm">
+                                </button>` : ''}
+                                ${canCopy ? `
+                                <button onclick="copyBooking('${b.id}')" class="flex-1 min-w-[110px] px-3 py-2 text-sm font-bold text-[#8f753a] bg-[#A88A45]/10 border border-[#A88A45]/30 rounded-xl hover:bg-[#A88A45] hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm">
+                                    <i data-lucide="copy" class="w-4 h-4"></i> نسخ الحجز
+                                </button>` : ''}
+                                ${canControl ? `
+                                <button onclick="deleteBooking('${b.id}')" class="flex-1 min-w-[110px] px-3 py-2 text-sm font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i> إلغاء الحجز
-                                </button>
+                                </button>` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -2196,9 +2362,13 @@
                 ['التاريخ', dateRow],
                 ['الوقت', timeDisplay],
                 ['رقم الهاتف', b.phone || 'لا يوجد رقم'],
+                ['الموظف المسؤول', (b.employee || '-').replace(/</g,'&lt;').replace(/>/g,'&gt;')],
                 ['تم الإنشاء بواسطة', (b.createdBy || '-').split('@')[0]],
                 ['تاريخ الإنشاء', createdAtDisplay],
             ];
+            if (b.eventType === 'other') {
+                rows.splice(3, 0, ['نوع المناسبة', 'مناسبة خاصة أخرى']);
+            }
 
             weddingSummaryRows(b, { hideRoomsExtra: true })
                 .filter(r => r[0] !== 'المنيو' && r[0] !== 'ملاحظات المنيو' && r[0] !== 'نوع الحجز')
@@ -2227,6 +2397,43 @@
     ${notesHtml}
 </div>`;
                 }
+            } else if (b.eventType === 'other' && b.otherMenu && b.otherMenu.menus) {
+                const fmtMenuDate = d => d ? d.split('-').reverse().join('/') : '';
+                const activeMenus = b.otherMenu.menus.filter(m => (m.items && m.items.filter(i => i.trim()).length) || (m.notes && m.notes.trim()) || (m.guests > 0) || (m.pricePerPerson > 0));
+                menuBoxHtml = activeMenus.map((m, i) => {
+                    const menuItems = (m.items || []).filter(it => it.trim());
+                    const menuNotes = (m.notes || '').trim();
+                    const dt = [fmtMenuDate(m.date), m.time].filter(Boolean).join(' — ');
+                    const metaLine = [m.hallName, dt].filter(Boolean).join(' • ').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const guests = m.guests || 0;
+                    const price = m.pricePerPerson || 0;
+                    const total = (m.total !== undefined && m.total !== null) ? m.total : (guests * price);
+                    const itemsGridHtml = menuItems.length ? `
+                        <div class="menu-grid">
+                            ${menuItems.map(item => `<div class="menu-item-box">${item.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('')}
+                        </div>` : '';
+                    const pricingHtml = (guests > 0 || price > 0) ? `<div class="menu-notes" style="background:#fdf6f2;border-color:#A88A45;color:#6E1418;">${guests} فرد × ${fmtEGP(price)} = ${fmtEGP(total)}</div>` : '';
+                    const notesHtml = menuNotes ? `<div class="menu-notes">${menuNotes.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+                    return `
+<div class="menu-box">
+    <div class="menu-box-title">${activeMenus.length > 1 ? 'منيو ' + (i + 1) : 'منيو المناسبة'}${metaLine ? ' — ' + metaLine : ''}</div>
+    ${itemsGridHtml}
+    ${pricingHtml}
+    ${notesHtml}
+</div>`;
+                }).join('');
+            }
+
+            if (b.eventType === 'other' && b.otherMenu && Array.isArray(b.otherMenu.equipment) && b.otherMenu.equipment.length) {
+                const eqs = b.otherMenu.equipment;
+                const eqSum = eqs.reduce((sum, e) => sum + (Number(e.total) || 0), 0);
+                const eqRows = eqs.map(e => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:#000;padding:2px 0;"><span dir="auto">${escapeHtml(e.name)}${(Number(e.qty) || 1) > 1 ? ' × ' + Number(e.qty) : ''}</span><span>${fmtEGP(e.total)}</span></div>`).join('');
+                menuBoxHtml += `
+<div class="menu-box">
+    <div class="menu-box-title">التجهيزات</div>
+    ${eqRows}
+    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:900;color:#6E1418;border-top:1px solid #A88A45;margin-top:3px;padding-top:3px;"><span>إجمالي التجهيزات</span><span>${fmtEGP(eqSum)}</span></div>
+</div>`;
             }
 
             const printLinks = getBookingLinks(b);
@@ -2603,9 +2810,41 @@ ${acknowledgmentHtml}
                 `تم الإنشاء بواسطة: ${(b.createdBy || '-').split('@')[0]}`,
                 `تاريخ الإنشاء: ${createdAtDisplay}`,
             ];
+            if (b.eventType === 'other') {
+                lines.splice(4, 0, 'نوع المناسبة: مناسبة خاصة أخرى');
+            }
 
             if (b.eventType === 'wedding' && b.wedding) {
                 lines.push('', '-- تفاصيل باقة الفرح --', ...weddingSummaryLines(b));
+            }
+
+            if (b.eventType === 'other' && b.otherMenu && b.otherMenu.menus) {
+                const fmtMenuDate = d => d ? d.split('-').reverse().join('/') : '';
+                const activeMenus = b.otherMenu.menus.filter(m => (m.items && m.items.filter(i => i.trim()).length) || (m.notes && m.notes.trim()) || (m.guests > 0) || (m.pricePerPerson > 0));
+                if (activeMenus.length) {
+                    lines.push('', '-- منيو المناسبة --');
+                    activeMenus.forEach((m, i) => {
+                        const menuItems = (m.items || []).filter(it => it.trim());
+                        const menuNotes = (m.notes || '').trim();
+                        const dt = [fmtMenuDate(m.date), m.time].filter(Boolean).join(' - ');
+                        const guests = m.guests || 0;
+                        const price = m.pricePerPerson || 0;
+                        const total = (m.total !== undefined && m.total !== null) ? m.total : (guests * price);
+                        if (activeMenus.length > 1) lines.push(`منيو ${i + 1}:`);
+                        if (m.hallName) lines.push(`  القاعة: ${m.hallName}`);
+                        if (dt) lines.push(`  الموعد: ${dt}`);
+                        if (guests > 0 || price > 0) lines.push(`  عدد الأفراد: ${guests} × ${fmtEGP(price)} = ${fmtEGP(total)}`);
+                        if (menuItems.length) lines.push(`  الأصناف: ${menuItems.join('، ')}`);
+                        if (menuNotes) lines.push(`  ملاحظات: ${menuNotes}`);
+                    });
+                }
+            }
+
+            if (b.eventType === 'other' && b.otherMenu && Array.isArray(b.otherMenu.equipment) && b.otherMenu.equipment.length) {
+                const eqs = b.otherMenu.equipment;
+                lines.push('', '-- التجهيزات --');
+                eqs.forEach(e => lines.push(`  ${e.name}${(Number(e.qty) || 1) > 1 ? ' × ' + Number(e.qty) : ''}: ${fmtEGP(e.total)}`));
+                lines.push(`  إجمالي التجهيزات: ${fmtEGP(eqs.reduce((sum, e) => sum + (Number(e.total) || 0), 0))}`);
             }
 
             if (b.notes) {
@@ -2870,18 +3109,6 @@ ${acknowledgmentHtml}
                                 </button>
                             ` : ''}
 
-                            ${((window.PublicKeyCredential || hasAndroidBiometricBridge()) && state.currentUserEmail !== GUEST_EMAIL) ? `
-                                <button onclick="toggleBiometricForCurrentUser()" class="p-2 sm:p-2.5 ${isBiometricRegisteredForCurrentUser() ? 'text-[#6E1418] bg-red-50' : 'text-slate-500 hover:text-[#6E1418] hover:bg-red-50'} rounded-xl transition-all shrink-0" title="${isBiometricRegisteredForCurrentUser() ? 'إلغاء الدخول بالبصمة' : 'تفعيل الدخول بالبصمة'}">
-                                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
-                                </button>
-                            ` : ''}
-
-                            <div class="h-6 sm:h-8 w-px bg-slate-200 mx-0.5 sm:mx-2 shrink-0"></div>
-                            
-                            <button onclick="logout()" class="flex items-center gap-1 sm:gap-2 text-sm font-bold text-red-600 hover:bg-red-50 p-2 sm:px-4 sm:py-2 rounded-xl transition-all border border-transparent hover:border-red-100 shrink-0" title="خروج">
-                                <span class="hidden sm:inline">خروج</span>
-                                <i data-lucide="log-out" class="w-5 h-5"></i>
-                            </button>
                         </div>
                     </div>
                 </header>
@@ -3141,7 +3368,9 @@ ${acknowledgmentHtml}
             form.querySelector('input[name="employee"]').value = getDefaultEmployeeName();
             document.getElementById('globalEventType').value = 'normal';
             document.getElementById('weddingCalcSection').classList.add('hidden');
+            document.getElementById('otherEventMenuSection').classList.add('hidden');
             fillWeddingFormFromBooking(null);
+            fillOtherMenuFormFromBooking(null);
 
             // إظهار قسم "نوع الحجز" للأدمن فقط
             const bookingTypeSection = document.getElementById('bookingTypeSection');
@@ -3152,6 +3381,7 @@ ${acknowledgmentHtml}
                     bookingTypeSection.classList.add('hidden');
                     document.getElementById('globalEventType').value = 'normal';
                     document.getElementById('weddingCalcSection').classList.add('hidden');
+                    document.getElementById('otherEventMenuSection').classList.add('hidden');
                 }
             }
 
@@ -3410,13 +3640,14 @@ ${acknowledgmentHtml}
         }
 
         // ─── Global New Booking Modal ─────────────────────────────────────
-        function openGlobalBookingForEdit(id, groupId) {
+        function openGlobalBookingForEdit(id, groupId, copyOpts) {
             const booking = state.bookings.find(b => b.id === id);
             if (!booking) return;
 
             // Always track the groupId (not the individual day id) for smart-merge edits
             const resolvedGroupId = groupId || booking.groupId || id;
-            state.editingBookingId = resolvedGroupId;
+            // في وضع النسخ لا نعدّل الحجز الأصلي: editingBookingId = null فيُحفظ كحجز جديد
+            state.editingBookingId = copyOpts ? null : resolvedGroupId;
 
             const modal = document.getElementById('globalBookingModal');
             const select = document.getElementById('globalHallSelect');
@@ -3445,6 +3676,13 @@ ${acknowledgmentHtml}
                 }
             }
 
+            let copyOffsetDays = 0;
+            if (copyOpts && copyOpts.newStart) {
+                copyOffsetDays = diffDaysDateStr(startDate, copyOpts.newStart);
+                endDate   = addDaysToDateStr(endDate, copyOffsetDays);
+                startDate = copyOpts.newStart;
+            }
+
             form.querySelector('input[name="dateFrom"]').value   = startDate;
             form.querySelector('input[name="dateTo"]').value     = endDate;
             form.querySelector('input[name="timeFrom"]').value   = booking.startTime  || '';
@@ -3466,20 +3704,30 @@ ${acknowledgmentHtml}
                 }
             }
 
-            document.getElementById('globalEventType').value = booking.eventType === 'wedding' ? 'wedding' : 'normal';
+            document.getElementById('globalEventType').value =
+                (booking.eventType === 'wedding' || booking.eventType === 'other') ? booking.eventType : 'normal';
             if (booking.eventType === 'wedding') {
                 document.getElementById('weddingCalcSection').classList.remove('hidden');
-                fillWeddingFormFromBooking(booking.wedding);
+                document.getElementById('otherEventMenuSection').classList.add('hidden');
+                fillWeddingFormFromBooking(copyOpts ? copyWeddingForNewBooking(booking.wedding) : booking.wedding);
+                fillOtherMenuFormFromBooking(null);
+            } else if (booking.eventType === 'other') {
+                document.getElementById('weddingCalcSection').classList.add('hidden');
+                document.getElementById('otherEventMenuSection').classList.remove('hidden');
+                fillWeddingFormFromBooking(null);
+                fillOtherMenuFormFromBooking(copyOpts ? copyOtherMenuForNewBooking(booking.otherMenu, copyOffsetDays) : booking.otherMenu);
             } else {
                 document.getElementById('weddingCalcSection').classList.add('hidden');
+                document.getElementById('otherEventMenuSection').classList.add('hidden');
                 fillWeddingFormFromBooking(null);
+                fillOtherMenuFormFromBooking(null);
             }
 
             form.querySelector('button[type="submit"]').innerHTML =
-                '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ التعديلات المطبقة</span>';
+                '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>' + (copyOpts ? 'حفظ الحجز المنسوخ' : 'حفظ التعديلات المطبقة') + '</span>';
 
             const titleEl = document.getElementById('globalModalTitle');
-            if (titleEl) titleEl.textContent = 'تعديل الحجز الحالي';
+            if (titleEl) titleEl.textContent = copyOpts ? 'نسخ حجز — راجع التفاصيل ثم احفظ' : 'تعديل الحجز الحالي';
             modal.classList.remove('hidden');
             if(typeof lucide!=="undefined") lucide.createIcons();
         }
@@ -3506,7 +3754,9 @@ ${acknowledgmentHtml}
                 setFormImages([]);
                 document.getElementById('globalEventType').value = 'normal';
                 document.getElementById('weddingCalcSection').classList.add('hidden');
+                document.getElementById('otherEventMenuSection').classList.add('hidden');
                 fillWeddingFormFromBooking(null);
+                fillOtherMenuFormFromBooking(null);
                 form.querySelector('button[type="submit"]').innerHTML =
                     '<i data-lucide="check-circle" class="w-6 h-6 text-[#A88A45]"></i><span>حفظ بيانات الحجز</span>';
                 const titleEl = document.getElementById('globalModalTitle');
@@ -3525,8 +3775,10 @@ ${acknowledgmentHtml}
         function onEventTypeChange() {
             const type = document.getElementById('globalEventType').value;
             const section = document.getElementById('weddingCalcSection');
+            const otherSection = document.getElementById('otherEventMenuSection');
             if (type === 'wedding') {
                 section.classList.remove('hidden');
+                if (otherSection) otherSection.classList.add('hidden');
                 if (!document.getElementById('weddingPackageSelect').options.length) {
                     populateWeddingPackageSelect();
                     renderWeddingExtrasInputs();
@@ -3535,10 +3787,273 @@ ${acknowledgmentHtml}
                 }
                 applyWeddingFieldPermissions();
                 recalcWeddingTotals();
+            } else if (type === 'other') {
+                section.classList.add('hidden');
+                if (otherSection) {
+                    otherSection.classList.remove('hidden');
+                    if (!document.querySelectorAll('.other-menu-block').length) {
+                        renderOtherEventMenus(null);
+                    }
+                }
             } else {
                 section.classList.add('hidden');
+                if (otherSection) otherSection.classList.add('hidden');
             }
             if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        // ═══════════════════ منيو مناسبة خاصة أخرى (عشاء / مؤتمر / حفل) — يدعم عدة منيوهات بتاريخ ووقت لكل منيو ═══════════════════
+
+        function renderOtherEventMenus(menus) {
+            const container = document.getElementById('otherEventMenusContainer');
+            if (!container) return;
+            const list = (menus && menus.length) ? menus : [{ date: '', time: '', hallId: '', guests: 0, pricePerPerson: 0, items: [''], notes: '' }];
+            container.innerHTML = list.map((m, mi) => `
+                <div class="other-menu-block bg-amber-50/60 border border-amber-100 rounded-xl p-3.5 space-y-2.5" data-menu-idx="${mi}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5 text-[11px] font-black text-[#A88A45]"><i data-lucide="utensils" class="w-3.5 h-3.5"></i> منيو ${mi + 1}</div>
+                        ${list.length > 1 ? `
+                        <button type="button" onclick="removeOtherMenuBlock(${mi})" class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0" title="حذف هذا المنيو">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div class="input-group !mb-0">
+                            <label class="text-xs">التاريخ</label>
+                            <input type="date" class="other-menu-date" value="${m.date || ''}">
+                        </div>
+                        <div class="input-group !mb-0">
+                            <label class="text-xs">الوقت</label>
+                            <input type="time" class="other-menu-time" value="${m.time || ''}">
+                        </div>
+                        <div class="input-group !mb-0">
+                            <label class="text-xs">القاعة</label>
+                            <select class="other-menu-hall">
+                                <option value="">-- نفس قاعة الحجز --</option>
+                                ${HALLS.map(h => `<option value="${h.id}" ${m.hallId === h.id ? 'selected' : ''}>${h.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="input-group !mb-0">
+                            <label class="text-xs">عدد الأفراد</label>
+                            <input type="number" class="other-menu-guests" min="0" step="1" value="${m.guests || 0}" oninput="recalcOtherMenuTotal(${mi})">
+                        </div>
+                        <div class="input-group !mb-0">
+                            <label class="text-xs">سعر الفرد (جنيه)</label>
+                            <input type="number" class="other-menu-price" min="0" step="any" value="${m.pricePerPerson || 0}" oninput="recalcOtherMenuTotal(${mi})">
+                        </div>
+                    </div>
+                    <div class="other-menu-total text-xs font-bold text-[#6E1418] bg-white/70 rounded-lg px-2.5 py-1.5 border border-amber-100">الإجمالي: ${fmtEGP((m.guests || 0) * (m.pricePerPerson || 0))}</div>
+                    <div class="other-menu-items space-y-2">
+                        ${(m.items && m.items.length ? m.items : ['']).map((item, ii) => `
+                            <div class="flex items-center gap-2">
+                                <input type="text" class="other-menu-item flex-1 text-sm" value="${escapeHtml(item || '')}" placeholder="اسم الصنف">
+                                <button type="button" onclick="removeOtherMenuItem(${mi}, ${ii})" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0" title="حذف الصنف">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" onclick="addOtherMenuItem(${mi})" class="text-xs font-bold text-[#A88A45] hover:text-[#8f753a] flex items-center gap-1">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> إضافة صنف
+                    </button>
+                    <textarea class="other-menu-block-notes" rows="2" placeholder="أي تفاصيل إضافية عن هذا المنيو...">${escapeHtml(m.notes || '')}</textarea>
+                </div>
+            `).join('');
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
+        function recalcOtherMenuTotal(menuIdx) {
+            const block = document.querySelector(`.other-menu-block[data-menu-idx="${menuIdx}"]`);
+            if (!block) return;
+            const guestsEl = block.querySelector('.other-menu-guests');
+            const priceEl = block.querySelector('.other-menu-price');
+            const totalEl = block.querySelector('.other-menu-total');
+            if (!totalEl) return;
+            const guests = guestsEl ? (parseFloat(guestsEl.value) || 0) : 0;
+            const price = priceEl ? (parseFloat(priceEl.value) || 0) : 0;
+            totalEl.textContent = 'الإجمالي: ' + fmtEGP(guests * price);
+        }
+
+        function getOtherMenusFromForm() {
+            return Array.from(document.querySelectorAll('.other-menu-block')).map(block => {
+                const hallSelectEl = block.querySelector('.other-menu-hall');
+                const hallId = hallSelectEl ? hallSelectEl.value : '';
+                const hall = HALLS.find(h => h.id === hallId);
+                const guests = block.querySelector('.other-menu-guests') ? (parseFloat(block.querySelector('.other-menu-guests').value) || 0) : 0;
+                const pricePerPerson = block.querySelector('.other-menu-price') ? (parseFloat(block.querySelector('.other-menu-price').value) || 0) : 0;
+                return {
+                    date:           block.querySelector('.other-menu-date') ? block.querySelector('.other-menu-date').value : '',
+                    time:           block.querySelector('.other-menu-time') ? block.querySelector('.other-menu-time').value : '',
+                    hallId:         hallId,
+                    hallName:       hall ? hall.name : '',
+                    guests:         guests,
+                    pricePerPerson: pricePerPerson,
+                    total:          guests * pricePerPerson,
+                    items:          Array.from(block.querySelectorAll('.other-menu-item')).map(inp => inp.value.trim()).filter(v => v),
+                    notes:          block.querySelector('.other-menu-block-notes') ? block.querySelector('.other-menu-block-notes').value.trim() : ''
+                };
+            });
+        }
+
+        function addOtherMenuBlock() {
+            const menus = getOtherMenusFromForm();
+            menus.push({ date: '', time: '', hallId: '', hallName: '', guests: 0, pricePerPerson: 0, items: [''], notes: '' });
+            renderOtherEventMenus(menus);
+        }
+
+        function removeOtherMenuBlock(idx) {
+            const menus = getOtherMenusFromForm();
+            if (menus.length <= 1) return;
+            menus.splice(idx, 1);
+            renderOtherEventMenus(menus);
+        }
+
+        function addOtherMenuItem(menuIdx) {
+            const menus = getOtherMenusFromForm();
+            if (!menus[menuIdx]) return;
+            menus[menuIdx].items.push('');
+            renderOtherEventMenus(menus);
+        }
+
+        function removeOtherMenuItem(menuIdx, itemIdx) {
+            const menus = getOtherMenusFromForm();
+            if (!menus[menuIdx]) return;
+            menus[menuIdx].items.splice(itemIdx, 1);
+            renderOtherEventMenus(menus);
+        }
+
+        // ═══════════════════ تجهيزات المناسبة الخاصة (Data Show / Sound / Flip Chart / Mic) — لكل صنف سعر ═══════════════════
+        // hasQty: يظهر حقل "العدد" بجانب الصنف (السعر يُضرب في العدد). غيّرها إلى true لأي صنف يحتاج عدد.
+        const OTHER_EQUIPMENT_CATALOG = [
+            { key: 'dataShow',    name: 'Data Show Projector',              hasQty: false },
+            { key: 'soundSystem', name: 'Sound System (without microphone)', hasQty: false },
+            { key: 'flipChart',   name: 'Flip Chart (per unit)',            hasQty: true  },
+            { key: 'wirelessMic', name: 'Wireless Microphone',              hasQty: true  }
+        ];
+
+        function renderOtherEquipment(saved) {
+            const container = document.getElementById('otherEquipmentContainer');
+            if (!container) return;
+            const savedMap = {};
+            const savedCustom = [];
+            (Array.isArray(saved) ? saved : []).forEach(e => {
+                if (!e) return;
+                if (e.custom) savedCustom.push(e);
+                else if (e.key) savedMap[e.key] = e;
+            });
+            const customContainer = document.getElementById('otherCustomEquipContainer');
+            if (customContainer) customContainer.innerHTML = savedCustom.map(e => otherCustomEquipRowHtml(e.name, e.price, e.qty)).join('');
+            container.innerHTML = OTHER_EQUIPMENT_CATALOG.map(eq => {
+                const s = savedMap[eq.key];
+                const price = s ? (Number(s.price) || 0) : '';
+                const qty = s ? (Number(s.qty) || 1) : 1;
+                return `
+                <div class="other-equip-row bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-2" data-equip-key="${eq.key}">
+                    <label class="flex items-center gap-2 flex-1 cursor-pointer" style="min-width:190px">
+                        <input type="checkbox" class="other-equip-toggle" style="width:16px;height:16px;padding:0;accent-color:#A88A45" ${s ? 'checked' : ''} onchange="recalcOtherEquipmentTotal()">
+                        <span class="text-sm font-bold text-slate-700" dir="ltr">${escapeHtml(eq.name)}</span>
+                    </label>
+                    ${eq.hasQty ? `
+                    <div class="flex items-center gap-1 text-xs text-slate-400 shrink-0">
+                        <span>العدد</span>
+                        <input type="number" class="other-equip-qty text-center" style="width:4.5rem" min="1" step="1" value="${qty}" oninput="onOtherEquipInput(this)">
+                    </div>` : ''}
+                    <div class="flex items-center gap-1 text-xs text-slate-400 shrink-0">
+                        <input type="number" class="other-equip-price" style="width:7.5rem" min="0" step="any" value="${price}" placeholder="السعر" oninput="onOtherEquipInput(this)">
+                        <span>جنيه</span>
+                    </div>
+                </div>`;
+            }).join('');
+            recalcOtherEquipmentTotal();
+        }
+
+        // تجهيز مخصّص يكتبه المستخدم (اسم + عدد + سعر) — يُحفظ مع الحجز فقط ولا يُضاف للكتالوج الثابت
+        function otherCustomEquipRowHtml(name, price, qty) {
+            const q = Number(qty) || 1;
+            const p = (price === '' || price === undefined || price === null) ? '' : (Number(price) || 0);
+            return `
+                <div class="other-custom-equip-row bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-2">
+                    <input type="text" class="other-custom-equip-name flex-1 text-sm font-bold" style="min-width:170px" dir="auto" value="${escapeHtml(name || '')}" placeholder="اسم التجهيز" oninput="recalcOtherEquipmentTotal()">
+                    <div class="flex items-center gap-1 text-xs text-slate-400 shrink-0">
+                        <span>العدد</span>
+                        <input type="number" class="other-custom-equip-qty text-center" style="width:4.5rem" min="1" step="1" value="${q}" oninput="recalcOtherEquipmentTotal()">
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-slate-400 shrink-0">
+                        <input type="number" class="other-custom-equip-price" style="width:7.5rem" min="0" step="any" value="${p}" placeholder="السعر" oninput="recalcOtherEquipmentTotal()">
+                        <span>جنيه</span>
+                    </div>
+                    <button type="button" onclick="removeOtherCustomEquipRow(this)" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0" title="حذف التجهيز">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>`;
+        }
+
+        function addOtherCustomEquipRow() {
+            const container = document.getElementById('otherCustomEquipContainer');
+            if (!container) return;
+            container.insertAdjacentHTML('beforeend', otherCustomEquipRowHtml('', '', 1));
+            if (typeof lucide !== "undefined") lucide.createIcons();
+            const inputs = container.querySelectorAll('.other-custom-equip-name');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        }
+
+        function removeOtherCustomEquipRow(btn) {
+            const row = btn.closest('.other-custom-equip-row');
+            if (row) row.remove();
+            recalcOtherEquipmentTotal();
+        }
+
+        // كتابة سعر أكبر من صفر تفعّل الصنف تلقائيًا (حتى لا يُنسى تفعيله وبالتالي لا يُحفظ)
+        function onOtherEquipInput(el) {
+            const row = el.closest('.other-equip-row');
+            if (row && el.classList.contains('other-equip-price') && (parseFloat(el.value) || 0) > 0) {
+                const cb = row.querySelector('.other-equip-toggle');
+                if (cb) cb.checked = true;
+            }
+            recalcOtherEquipmentTotal();
+        }
+
+        function getOtherEquipmentFromForm() {
+            const result = [];
+            document.querySelectorAll('.other-equip-row').forEach(row => {
+                const cb = row.querySelector('.other-equip-toggle');
+                if (!cb || !cb.checked) return;
+                const key = row.dataset.equipKey;
+                const eq = OTHER_EQUIPMENT_CATALOG.find(x => x.key === key);
+                if (!eq) return;
+                const price = parseFloat(row.querySelector('.other-equip-price').value) || 0;
+                const qtyEl = row.querySelector('.other-equip-qty');
+                const qty = qtyEl ? Math.max(1, parseInt(qtyEl.value, 10) || 1) : 1;
+                result.push({ key: eq.key, name: eq.name, price: price, qty: qty, total: price * qty });
+            });
+            document.querySelectorAll('.other-custom-equip-row').forEach((row, i) => {
+                const name = row.querySelector('.other-custom-equip-name').value.trim();
+                if (!name) return;
+                const price = parseFloat(row.querySelector('.other-custom-equip-price').value) || 0;
+                const qty = Math.max(1, parseInt(row.querySelector('.other-custom-equip-qty').value, 10) || 1);
+                result.push({ key: 'custom_' + i, name: name, price: price, qty: qty, total: price * qty, custom: true });
+            });
+            return result;
+        }
+
+        function recalcOtherEquipmentTotal() {
+            const box = document.getElementById('otherEquipmentTotal');
+            if (!box) return;
+            const list = getOtherEquipmentFromForm();
+            if (!list.length) { box.classList.add('hidden'); box.textContent = ''; return; }
+            box.classList.remove('hidden');
+            box.textContent = 'إجمالي التجهيزات: ' + fmtEGP(list.reduce((sum, e) => sum + e.total, 0));
+        }
+
+        function collectOtherMenuDataFromForm() {
+            return { menus: getOtherMenusFromForm(), equipment: getOtherEquipmentFromForm() };
+        }
+
+        function fillOtherMenuFormFromBooking(om) {
+            renderOtherEventMenus(om && om.menus && om.menus.length ? om.menus : null);
+            renderOtherEquipment(om && om.equipment ? om.equipment : null);
         }
 
         function populateWeddingPackageSelect() {
@@ -4141,7 +4656,8 @@ ${acknowledgmentHtml}
                     : state.currentUserEmail,
                 createdAt:   new Date().toISOString(),
                 eventType:   form.eventType ? form.eventType.value : 'normal',
-                wedding:     (form.eventType && form.eventType.value === 'wedding') ? collectWeddingDataFromForm() : null
+                wedding:     (form.eventType && form.eventType.value === 'wedding') ? collectWeddingDataFromForm() : null,
+                otherMenu:   (form.eventType && form.eventType.value === 'other') ? collectOtherMenuDataFromForm() : null
             };
 
             const start = new Date(bookingData.startDate);
@@ -4223,6 +4739,7 @@ ${acknowledgmentHtml}
                             images:        bookingData.images,
                             eventType:     bookingData.eventType,
                             wedding:       bookingData.wedding,
+                            otherMenu:     bookingData.otherMenu,
                             originalRange: bookingData.startDate + ' to ' + bookingData.endDate,
                             _isDirty:      true
                         };
