@@ -53,6 +53,70 @@
         </div>
     </div>
 
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
+            <div class="text-center mb-10 mt-2">
+                <div class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm relative group">
+                    <div class="absolute inset-0 bg-[#A88A45] opacity-0 group-hover:opacity-10 rounded-[1.5rem] transition-opacity duration-300"></div>
+                    <i data-lucide="shield-check" class="w-12 h-12 text-[#6E1418]"></i>
+                </div>
+                <h2 class="text-3xl font-black text-[#6E1418] tracking-tight">مرحباً بك</h2>
+                <p class="text-slate-500 mt-2 text-sm">نظام إدارة حجوزات قاعات رستا</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div class="input-group">
+                    <label>البريد الإلكتروني</label>
+                    <div class="relative">
+                        <input type="email" id="loginEmail" required class="text-left" dir="ltr" placeholder="user@example.com">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>كلمة المرور</label>
+                    <div class="relative">
+                        <input type="password" id="loginPassword" required class="text-left" dir="ltr" placeholder="••••••••">
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 mt-4">
+                    <button type="submit" class="flex-1 bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span>تسجيل الدخول</span>
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="loginScreenBiometricBtn" onclick="loginWithBiometricFromLoginScreen()" class="hidden shrink-0 w-14 h-14 bg-slate-50 hover:bg-slate-100 text-[#6E1418] rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center" title="الدخول بالبصمة">
+                        <i data-lucide="fingerprint" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </form>
+            <button type="button" onclick="loginAsGuest()" class="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span>الدخول كزائر (مشاهدة فقط)</span>
+            </button>
+            <p class="text-xs text-center text-slate-400 mt-8 bg-slate-50 py-3 rounded-xl border border-slate-100">للحصول على حساب جديد، يرجى التواصل مع مدير النظام.</p>
+        </div>
+    </div>
+
+    <!-- Biometric Lock Screen -->
+    <div id="biometricLockScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden text-center">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
+            <div id="biometricLockIconWrap" class="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center border border-slate-200 shadow-sm">
+                <i data-lucide="fingerprint" class="w-12 h-12 text-[#6E1418]"></i>
+            </div>
+            <h2 class="text-2xl font-black text-[#6E1418] tracking-tight mb-1">تسجيل الدخول بالبصمة</h2>
+            <p id="biometricLockStatus" class="text-slate-500 mt-2 text-sm mb-8">استخدم بصمتك لفتح التطبيق...</p>
+            <div id="biometricLockActions" class="hidden space-y-3">
+                <button onclick="retryBiometricUnlock()" class="w-full bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-[#6E1418]/30 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                    <span>إعادة المحاولة</span>
+                </button>
+                <button onclick="useBiometricFallbackPassword()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-xl border border-slate-200 transition-all duration-300 transform active:scale-[0.98]">
+                    تسجيل الدخول بكلمة المرور
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main App -->
     <div id="app" style="display: none;">
         <!-- Content injected by JS -->
@@ -101,7 +165,39 @@
             <div class="p-6 overflow-y-auto">
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3 text-blue-800">
                     <i data-lucide="info" class="w-5 h-5 mt-0.5 shrink-0"></i>
-                    <p class="text-sm">قائمة بجميع المستخدمين المسجلين بالنظام. إضافة المستخدمين وحذفهم وتغيير كلمات المرور تتم من Firebase Console فقط (Realtime Database ← users).</p>
+                    <p class="text-sm">قائمة بجميع المستخدمين المسجلين بالنظام. بصفتك مدير (Admin)، يمكنك تعديل كلمات المرور أو حذف الحسابات.</p>
+                </div>
+
+                <!-- Add New User Form - Admin Only -->
+                <div id="addUserFormSection" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
+                    <div class="flex items-center gap-2 text-slate-700 font-black text-base mb-4 border-b border-slate-200 pb-3">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-[#A88A45]"></i>
+                        إضافة مستخدم جديد
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="input-group">
+                            <label class="required">البريد الإلكتروني</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="email" id="newUserEmail" placeholder="user@example.com" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="required">كلمة المرور</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                                </div>
+                                <input type="password" id="newUserPassword" placeholder="••••••••" dir="ltr" class="text-left pl-10">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="addNewUser()" class="bg-[#6E1418] hover:bg-[#5a1013] text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#6E1418]/20 transition-all duration-200 flex items-center gap-2 text-sm active:scale-95">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        إنشاء الحساب
+                    </button>
                 </div>
 
                 <div class="table-responsive rounded-xl border border-slate-200">
@@ -414,7 +510,7 @@
                                 <input type="tel" name="phone" placeholder="مثال: 01xxxxxxxxx">
                             </div>
                             <div class="input-group">
-                                <label>الموظف المسؤول</label>
+                                <label>القائم بالحجز</label>
                                 <input type="text" name="employee" placeholder="اسم الموظف المتابع">
                             </div>
                         </div>
@@ -710,7 +806,7 @@
         <span id="sync-text" class="text-sm font-bold tracking-wide">جاري المزامنة مع السحابة...</span>
     </div>
 
-    <script src="app_marwa.js?v=1"></script>
+    <script src="app.js"></script>
 
     <!-- Hidden file input for backup restore -->
     <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="handleBackupFileSelected(event)">
