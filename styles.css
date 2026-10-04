@@ -57,10 +57,7 @@
         #weddingCalcSection input,
         #quickCalcBody select,
         #quickCalcBody input,
-        #weddingSettingsBody input,
-        #otherEventMenuSection select,
-        #otherEventMenuSection input,
-        #otherEventMenuSection textarea {
+        #weddingSettingsBody input {
             padding: 0.6rem 0.85rem;
             border-radius: 0.85rem;
             border: 1px solid #e2e8f0;
@@ -74,10 +71,7 @@
         #weddingCalcSection input:focus,
         #quickCalcBody select:focus,
         #quickCalcBody input:focus,
-        #weddingSettingsBody input:focus,
-        #otherEventMenuSection select:focus,
-        #otherEventMenuSection input:focus,
-        #otherEventMenuSection textarea:focus {
+        #weddingSettingsBody input:focus {
             background-color: #ffffff;
             border-color: var(--brand-gold) !important;
             box-shadow: 0 0 0 4px rgba(168, 138, 69, 0.15) !important;
@@ -621,6 +615,3 @@
             font-weight: 600;
         }
         /* ===================== End PDF Export ===================== */
-
-/* نسخة الحساب الثابت: إخفاء شاشات الدخول نهائيًا */
-#loginModal, #biometricLockScreen { display: none !important; }

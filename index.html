@@ -38,7 +38,6 @@
     <!-- Firebase (Realtime Database) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -54,7 +53,7 @@
     </div>
 
     <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+    <div id="loginModal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
         <div class="bg-white rounded-[2rem] p-8 md:p-10 max-w-md w-full shadow-2xl animate-fade-in relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#A88A45] to-[#6E1418]"></div>
             <div class="text-center mb-10 mt-2">
@@ -510,7 +509,7 @@
                                 <input type="tel" name="phone" placeholder="مثال: 01xxxxxxxxx">
                             </div>
                             <div class="input-group">
-                                <label>القائم بالحجز</label>
+                                <label>الموظف المسؤول</label>
                                 <input type="text" name="employee" placeholder="اسم الموظف المتابع">
                             </div>
                         </div>
@@ -806,7 +805,7 @@
         <span id="sync-text" class="text-sm font-bold tracking-wide">جاري المزامنة مع السحابة...</span>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app-marwa.js"></script>
 
     <!-- Hidden file input for backup restore -->
     <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="handleBackupFileSelected(event)">
