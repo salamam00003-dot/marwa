@@ -187,12 +187,10 @@
         }
 
         // ─── Default Employee Name Based on Logged-in User ────────────────
-        const DEFAULT_EMPLOYEE_BY_EMAIL = {
-            "salama.m@gmail.com": "محمد عبد السلام",
-            "rihan@gmail.com": "علاء شحاته"
-        };
+        // هذه النسخة مخصصة لـ "مروه" فقط، فالاسم ثابت تلقائيًا لكل المستخدمين
+        const DEFAULT_EMPLOYEE_NAME = "مروه";
         function getDefaultEmployeeName() {
-            return DEFAULT_EMPLOYEE_BY_EMAIL[(state.currentUserEmail || '').toLowerCase()] || '';
+            return DEFAULT_EMPLOYEE_NAME;
         }
 
         // Colors for JS Injection
