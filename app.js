@@ -3,14 +3,14 @@
         // كل منطق المزامنة، الـ opsVersion، الإشعارات... إلخ باقٍ كما هو تماماً،
         // تم فقط استبدال طبقة الاتصال بالسحابة.
         const firebaseConfig = {
-            apiKey: "AIzaSyCSFdAvuqk4l1KJaCyuD5m1mm6q0duBW1I",
-            authDomain: "restaevents-cedd8.firebaseapp.com",
-            databaseURL: "https://restaevents-cedd8-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "restaevents-cedd8",
-            storageBucket: "restaevents-cedd8.firebasestorage.app",
-            messagingSenderId: "485150178953",
-            appId: "1:485150178953:web:788176badf6826282d5058",
-            measurementId: "G-0QPN5ZGSJB"
+            apiKey: "AIzaSyDHjNvsMszkSaMFcbyP9oBKtMtT5x8Z5EE",
+            authDomain: "restaevents-eeffb.firebaseapp.com",
+            databaseURL: "https://restaevents-eeffb-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "restaevents-eeffb",
+            storageBucket: "restaevents-eeffb.firebasestorage.app",
+            messagingSenderId: "689779466978",
+            appId: "1:689779466978:web:c9eff234c04df512fc34bb",
+            measurementId: "G-FLWHW5PY98"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
